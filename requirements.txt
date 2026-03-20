@@ -1,0 +1,28 @@
+# --- Core Framework ---
+fastapi
+uvicorn[standard]
+
+# --- Validation & Settings ---
+pydantic-settings
+python-dotenv
+
+# --- File Handling (OCR 전처리용) ---
+python-multipart
+Pillow
+
+# --- Database (PostgreSQL & SQLAlchemy) ---
+sqlalchemy
+psycopg2-binary
+
+# --- AI & RAG (Gemini & Vector DB) ---
+google-generativeai
+langchain
+langchain-google-genai
+chromadb
+
+# --- OCR Engine ---
+easyocr
+
+PyMuPDF
+beautifulsoup4
+requests

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* 💡 v4에서는 @layer 대신 직접 스타일을 써도 테일윈드가 알아먹어 */
+body {
+  background-color: theme('colors.slate.50');
+  color: theme('colors.slate.900');
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 혹시 예전에 줬던 @apply가 있으면 다 지우고 이 구조로 가자 */
