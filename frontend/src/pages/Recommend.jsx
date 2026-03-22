@@ -8,7 +8,6 @@ const Recommend = () => {
   const [updating, setUpdating] = useState(true);
   const [currentTerm, setCurrentTerm] = useState(null);
 
-  // 📖 청년 필수 법률 용어 데이터셋
   const legalTermsDB = [
     { term: "부제소 합의", pronunciation: "[부:제소 하비]", definition: "나중에 어떠한 이유로든 민·형사상 소송을 제기하지 않기로 미리 약속하는 것.", caution: "합의서 쓸 때 이 문구 있으면 나중에 억울해도 고소 못 하니 신중해야 함!" },
     { term: "확정일자", pronunciation: "[확쩡 일짜]", definition: "법원이나 동사무소에서 계약서가 실존함을 증명한 날짜. 전세사기 방어의 핵심.", caution: "전입신고와 확정일자를 둘 다 해야 '우선변제권'이 생겨서 내 보증금을 지킴." },
@@ -17,23 +16,20 @@ const Recommend = () => {
     { term: "미필적 고의", pronunciation: "[미필쩍 고이]", definition: "결과가 발생할 위험을 예견하고도 '일어나도 어쩔 수 없지'라고 받아들이는 심리 상태.", caution: "직접적인 의도가 없었더라도 미필적 고의가 인정되면 형사 처벌 대상이 됨." }
   ];
 
-  // 🎲 랜덤 용어 추출
   const getRandomTerm = () => {
     const randomIndex = Math.floor(Math.random() * legalTermsDB.length);
     setCurrentTerm(legalTermsDB[randomIndex]);
   };
 
-  // 🚀 실시간 법률 뉴스 업데이트 (API 연동)
   const fetchLegalUpdates = async () => {
     setUpdating(true);
     try {
-      // 🔗 백엔드(FastAPI)에서 찐 데이터 가져오기
       const res = await axios.get('http://localhost:8000/api/v1/legal-updates/');
       if (res.data.status === "success") {
         setLegalUpdates(res.data.data);
       }
     } catch (err) {
-      console.error("백엔드 연결 실패! 도커 확인해봐 영웅아!");
+      console.error("백엔드 연결 실패!", err);
       setLegalUpdates([]); 
     } finally {
       setUpdating(false);
@@ -61,54 +57,68 @@ const Recommend = () => {
                 onClick={() => { fetchLegalUpdates(); getRandomTerm(); }} 
                 className="bg-white/10 hover:bg-white/20 p-4 rounded-full transition-all border border-white/5 shadow-inner"
               >
-                <RefreshCcw size={24} className={updating ? "animate-spin" : ""} />
+                <RefreshCcw size={24} className={updating ? "animate-spin text-blue-400" : ""} />
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 📰 2. 실시간 법률 다이제스트 (격자 정렬 버전) */}
+      {/* 📰 2. 실시간 법률 다이제스트 */}
       <section className="space-y-8 px-4">
         <h3 className="text-2xl font-black text-slate-900 tracking-tighter flex items-center gap-3 italic">
           <Newspaper className="text-blue-600" /> Real-time Updates
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-            <AnimatePresence mode='popLayout'>
-                {legalUpdates.map((update) => (
-                    <motion.div 
-                        key={update.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -10 }}
-                        onClick={() => update.link && window.open(update.link, '_blank')}
-                        className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col cursor-pointer group hover:border-blue-300 transition-all duration-500 h-full"
-                    >
-                        <div className="flex-1 flex flex-col space-y-6">
-                            <div className="flex justify-between items-start">
-                                <span className="bg-slate-50 text-slate-500 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100">{update.category}</span>
-                                <span className="text-blue-600 font-black text-[10px] italic">{update.tag}</span>
-                            </div>
-                            
-                            <h4 className="text-2xl font-black text-slate-900 leading-[1.3] group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[4rem]">
-                                {update.title}
-                            </h4>
-                            
-                            <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-3 flex-1">
-                                {update.summary}
-                            </p>
-                        </div>
-
-                        <div className="mt-8 pt-8 border-t border-slate-50 flex justify-between items-center">
-                            <div className="flex-1">
-                                <p className="text-[10px] text-slate-400 font-black uppercase mb-1 italic tracking-widest">Impact</p>
-                                <p className="text-emerald-500 font-black text-sm italic break-keep">⚡ {update.impact}</p>
-                            </div>
-                            <div className="shrink-0 bg-slate-50 p-3 rounded-full text-slate-300 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all">
-                                <ArrowUpRight size={20} />
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </AnimatePresence>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch min-h-[400px]">
+          <AnimatePresence mode='wait'>
+            {updating ? (
+              /* 로딩 중일 때 */
+              <motion.div 
+                key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400"
+              >
+                <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
+                <p className="font-black italic">AI가 실시간 뉴스를 긁어오고 있습니다...</p>
+              </motion.div>
+            ) : legalUpdates.length > 0 ? (
+              /* 뉴스가 있을 때 */
+              legalUpdates.map((update) => (
+                <motion.div 
+                  key={update.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -10 }}
+                  onClick={() => update.link && window.open(update.link, '_blank')}
+                  className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col cursor-pointer group hover:border-blue-300 transition-all duration-500 h-full"
+                >
+                  <div className="flex-1 flex flex-col space-y-6">
+                    <div className="flex justify-between items-start">
+                      <span className="bg-slate-50 text-slate-500 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100">{update.category}</span>
+                      <span className="text-blue-600 font-black text-[10px] italic">{update.tag}</span>
+                    </div>
+                    <h4 className="text-2xl font-black text-slate-900 leading-[1.3] group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[4rem]">{update.title}</h4>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-3 flex-1">{update.summary}</p>
+                  </div>
+                  <div className="mt-8 pt-8 border-t border-slate-50 flex justify-between items-center">
+                    <div className="flex-1">
+                      <p className="text-[10px] text-slate-400 font-black uppercase mb-1 italic tracking-widest">Impact</p>
+                      <p className="text-emerald-500 font-black text-sm italic break-keep">⚡ {update.impact}</p>
+                    </div>
+                    <div className="shrink-0 bg-slate-50 p-3 rounded-full text-slate-300 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all">
+                      <ArrowUpRight size={20} />
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              /* 데이터가 진짜 없을 때만 표시 */
+              <motion.div 
+                key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="col-span-full py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 text-center text-slate-400 font-black italic"
+              >
+                현재 실시간으로 긁어온 뉴스가 없습니다. <br/>
+                백엔드 크롤러가 네이버 뉴스를 잘 찾고 있는지 확인해보세요!
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
@@ -126,7 +136,6 @@ const Recommend = () => {
                     <h4 className="text-5xl lg:text-6xl font-black tracking-tighter italic">{currentTerm.term}</h4>
                     <p className="text-blue-200 font-mono text-xl">{currentTerm.pronunciation}</p>
                 </div>
-                
                 <div className="flex-1 space-y-6">
                     <div className="bg-white/10 p-8 rounded-[2.5rem] border border-white/10 relative">
                         <Quote className="absolute -top-4 -left-4 text-white opacity-20" size={48} />
@@ -137,17 +146,12 @@ const Recommend = () => {
                         <p className="text-sm font-black text-blue-50 tracking-tight leading-relaxed"><span className="text-amber-400 font-black">핵심 주의:</span> {currentTerm.caution}</p>
                     </div>
                 </div>
-
                 <button onClick={getRandomTerm} className="shrink-0 bg-white text-blue-600 p-6 rounded-full shadow-xl hover:scale-110 transition-all active:scale-95">
                     <ChevronRight size={32} />
                 </button>
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="col-span-full py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 text-center text-slate-400 font-black italic">
-                    현재 실시간으로 긁어온 뉴스가 없습니다. <br/>
-                    백엔드 크롤러가 네이버 뉴스를 잘 찾고 있는지 확인해보세요!
-                </div>
       </section>
 
       {/* 🏛️ 하단 섹션 */}

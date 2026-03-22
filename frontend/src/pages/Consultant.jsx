@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios'; // 🚀 백엔드 통신을 위해 axios 추가!
 import { Send, Loader2, User, ShieldCheck, FileText, Download, ArrowLeft, Gavel, Scale, Sparkles, BookOpen, AlertCircle, Library, Printer, Copy, FileDown, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { domToCanvas } from 'modern-screenshot';
-import jsPDF from 'jspdf';
 
 const Consultant = () => {
   const [view, setView] = useState('menu'); 
@@ -12,7 +11,7 @@ const Consultant = () => {
   const [selectedDoc, setSelectedDoc] = useState(null);
   const scrollRef = useRef(null);
 
-  // 📚 [영웅's Selection] 청년 필수 7대 법률 서류 데이터베이스
+  // 📚 청년 필수 7대 법률 서류 데이터베이스
   const docLibrary = [
     { 
       id: 'contents', title: "내용증명", icon: <FileText className="text-blue-500" />, 
@@ -63,21 +62,45 @@ const Consultant = () => {
     setView('chat');
     setIsTyping(true);
     await new Promise(r => setTimeout(r, 1000));
-    setMessages([{ role: 'assistant', content: `안녕하십니까. [${doc.title}] 작성을 도와드릴 AI 변호사입니다. \n\n상단의 '양식 다운로드' 버튼으로 원본 파일을 먼저 받으신 후, 저와 대화를 통해 내용을 채워보시면 됩니다. 어떤 상황인지 말씀해 주시겠습니까?` }]);
+    // 🚀 백엔드 Gemini 규격에 맞게 role을 'assistant'에서 'model'로 수정
+    setMessages([{ role: 'model', content: `안녕하십니까. [${doc.title}] 작성을 도와드릴 AI 변호사입니다. \n\n상단의 '양식 다운로드' 버튼으로 원본 파일을 먼저 받으신 후, 저와 대화를 통해 내용을 채워보시면 됩니다. 어떤 상황인지 말씀해 주시겠습니까?` }]);
     setIsTyping(false);
   };
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
 
+  // 🚀 [핵심] 가짜 답변 지우고, 진짜 백엔드 API랑 연결하는 로직
   const handleSend = async () => {
     if (!input.trim()) return;
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
+    
+    // 1. 내가 친 채팅을 먼저 화면에 띄움
+    const userMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: "분석을 마쳤습니다. 해당 양식에 바로 복사해서 쓸 수 있는 AI 초안이 생성되었습니다. [초안 확인] 버튼을 눌러주세요." }]);
+
+    try {
+      // 2. 백엔드(FastAPI)로 쏠 데이터 포장
+      const payload = {
+        document_type: selectedDoc.title,
+        message: userMessage.content,
+        // 현재까지의 대화 내역 전체를 같이 보내야 AI가 기억함
+        history: messages 
+      };
+
+      // 3. 백엔드 채팅 API로 POST 요청
+      const res = await axios.post('http://localhost:8000/api/v1/chat/draft', payload);
+      
+      // 4. 진짜 AI 변호사의 답변을 받아서 화면에 띄움
+      if (res.data && res.data.data) {
+        setMessages(prev => [...prev, res.data.data]);
+      }
+    } catch (error) {
+      console.error("서버 통신 에러:", error);
+      setMessages(prev => [...prev, { role: 'model', content: "🚨 서버와 연결이 끊어졌습니다. 잠시 후 다시 시도해주세요." }]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -142,7 +165,7 @@ const Consultant = () => {
               <div className="space-y-10">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`p-6 rounded-[2.5rem] max-w-[80%] font-semibold leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-950 text-white rounded-tr-none' : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-100'}`}>
+                    <div className={`p-6 rounded-[2.5rem] max-w-[80%] font-semibold leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-950 text-white rounded-tr-none' : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-100 whitespace-pre-wrap'}`}>
                       {msg.content}
                     </div>
                   </div>
@@ -152,7 +175,8 @@ const Consultant = () => {
               </div>
             </div>
             <AnimatePresence>
-              {messages.length >= 2 && !isTyping && (
+              {/* 🚀 초안 확인 팝업은 대화를 충분히(최소 4번 이상) 나눈 뒤에 뜨도록 수정 */}
+              {messages.length >= 4 && !isTyping && (
                 <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-8 pb-4">
                   <div className="bg-slate-950 p-6 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl ring-8 ring-slate-100">
                     <div className="flex items-center gap-4"><Copy className="text-blue-500" /> <h4 className="font-black text-lg">양식 복사용 AI 초안이 완성되었습니다.</h4></div>
@@ -178,7 +202,7 @@ const Consultant = () => {
                         {selectedDoc.templateStructure.fields.map((field, idx) => (
                             <div key={idx} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
                                 <div className="flex justify-between items-center"><span className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-md">{field}</span><button className="text-slate-300 hover:text-blue-600 flex items-center gap-1 text-[10px] font-bold"><Copy size={12}/> 복사</button></div>
-                                <p className="text-slate-900 font-serif text-lg leading-relaxed whitespace-pre-wrap">{idx === 2 ? `${selectedDoc.title} 통고` : idx === 3 ? messages[messages.length-2]?.content : "양식에 본인 정보를 기입하십시오."}</p>
+                                <p className="text-slate-900 font-serif text-lg leading-relaxed whitespace-pre-wrap">{idx === 2 ? `${selectedDoc.title} 통고` : idx === 3 ? messages[messages.length-1]?.content : "양식에 본인 정보를 기입하십시오."}</p>
                             </div>
                         ))}
                     </div>

@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(recommend.router, prefix="/api/v1/recommend", tags=["recommend"])
 app.include_router(analyze.router, prefix="/api/v1/analyze", tags=["analyze"])
 app.include_router(legal.router, prefix="/api/v1", tags=["legal"])
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
 @app.get("/")
 async def root():
     return {
