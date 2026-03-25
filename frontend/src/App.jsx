@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Home from './pages/Home';
-import History from './pages/History';
+import History from './pages/history';
 import ReportView from './pages/ReportView'; // 🚀 신설된 리포트 페이지
 import Recommend from './pages/Recommend';
 import Consultant from './pages/Consultant';
