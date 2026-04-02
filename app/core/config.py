@@ -5,8 +5,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     GEMINI_API_KEY: str
     
-    # 🚀 OpenAI API 키 (반드시 .env와 이름이 같아야 함)
-    OPENAI_API_KEY: str 
+    # 🚀 [여기 추가!!] Pydantic아, 네이버 키도 같이 읽어와라!
+    NAVER_CLIENT_ID: str = ""
+    NAVER_CLIENT_SECRET: str = ""
 
     # 🚀 V2 전용 설정: .env 파일을 읽어오는 방식
     model_config = SettingsConfigDict(

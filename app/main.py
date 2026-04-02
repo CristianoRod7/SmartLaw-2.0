@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 # 🚀 [핵심] 여기서 recommend를 불러와야 에러가 안 나!
-from app.api.v1 import recommend, analyze , legal
+from app.api.v1 import recommend, analyze, legal, chat
 
 app = FastAPI(title="NextLaw 2.0 API")
 

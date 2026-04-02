@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Home from './pages/Home';
-import History from './pages/history';
+import History from './pages/History';
 import ReportView from './pages/ReportView'; // 🚀 신설된 리포트 페이지
 import Recommend from './pages/Recommend';
 import Consultant from './pages/Consultant';
@@ -43,21 +43,31 @@ function App() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-                <div className="max-w-6xl mx-auto px-6 h-20 flex justify-between items-center py-4">
-                    <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigateTo('home')}>
+            
+            {/* 🚨 z-index: 999로 올려서 Consultant 에디터 뒤로 안 숨게 방어 */}
+            <nav className="sticky top-0 z-[999] bg-white/80 backdrop-blur-md border-b border-slate-200">
+                {/* 🚀 여기도 max-w-[1600px]로 넓혀서 탭 안 찌그러지게! */}
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-20 flex justify-between items-center py-4 transition-all duration-300">
+                    <div className="flex items-center gap-2.5 cursor-pointer shrink-0" onClick={() => navigateTo('home')}>
                         <div className="bg-blue-600 p-2.5 rounded-2xl shadow-lg shadow-blue-100"><Shield className="text-white w-6 h-6" /></div>
                         <div className="flex flex-col"><span className="text-xl font-black text-slate-800 leading-none">NextLaw</span></div>
                     </div>
-                    <div className="flex bg-slate-100/80 p-1.5 rounded-[1.25rem] border border-slate-200/50">
-                        <button onClick={() => navigateTo('home')} className={`px-5 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'home' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><FileSearch size={18}/> 계약 분석</button>
-                        <button onClick={() => navigateTo('consult')} className={`px-5 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'consult' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><Gavel size={18}/> 상담/서류 작성</button>
-                        <button onClick={() => navigateTo('history')} className={`px-5 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'history' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><HistoryIcon size={18}/> 분석 기록</button>
+                    
+                    {/* 🚀 탭 메뉴: 4개 꽉꽉 채워넣음! (가로 스크롤 허용해서 모바일에서도 안 깨지게) */}
+                    <div className="flex bg-slate-100/80 p-1.5 rounded-[1.25rem] border border-slate-200/50 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                        <button onClick={() => navigateTo('home')} className={`px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'home' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><FileSearch size={18}/> 계약 분석</button>
+                        <button onClick={() => navigateTo('consult')} className={`px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'consult' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><Gavel size={18}/> 상담/서류 작성</button>
+                        
+                        {/* 🌟 드디어 빛을 보는 법률 추천 버튼 ㅋㅋㅋㅋ 🌟 */}
+                        <button onClick={() => navigateTo('recommend')} className={`px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'recommend' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><Zap size={18}/> 법률/추천</button>
+                        
+                        <button onClick={() => navigateTo('history')} className={`px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${view === 'history' ? 'bg-white shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}><HistoryIcon size={18}/> 분석 기록</button>
                     </div>
                 </div>
             </nav>
             
-            <main className="max-w-6xl mx-auto px-6 py-12">
+            {/* 🚀 Consultant랑 Recommend 창일 때는 max-w-[1600px]로 시원하게 확장! 나머지는 6xl 유지 */}
+            <main className={`mx-auto transition-all duration-500 ease-in-out ${view === 'consult' || view === 'recommend' ? 'max-w-[1600px] px-4 sm:px-8 py-6' : 'max-w-6xl px-6 py-12'}`}>
                 <AnimatePresence mode="wait">
                     {/* 🚀 홈은 이제 결과값 없이 무조건 업로드 화면만 띄움 */}
                     {view === 'home' && <Home key="home" result={null} setResult={(data, id) => { setResult(data); navigateTo('report', id); }} />}
@@ -66,10 +76,15 @@ function App() {
                     {view === 'report' && <ReportView key="report" data={result} setView={navigateTo} />}
                     
                     {view === 'consult' && <Consultant key="consult" />}
+                    
+                    {/* 🌟 컴포넌트 렌더링도 안 빼먹고 추가! */}
+                    {view === 'recommend' && <Recommend key="recommend" />} 
+                    
                     {view === 'history' && <History key="history" setView={navigateTo} setResult={setResult} />}
                 </AnimatePresence>
             </main>
         </div>
     );
 }
+
 export default App;
