@@ -1,447 +1,143 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { 
-  ShieldAlert, FileText, CheckCircle, AlertTriangle, Download, ArrowLeft, 
-  Loader2, MapPin, Scale, Gavel, Coins, RefreshCw, Lock, CloudRain, 
-  ShieldCheck, ChevronDown, Sparkles, UploadCloud, CheckCircle2
+  Zap, Cpu, Leaf, Scale, BarChart3, 
+  ArrowUpRight, TrendingUp, ChevronRight, Sparkles 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// =========================================================================
-// 🚀 공통 헬퍼 함수 및 설정
-// =========================================================================
-const ICON_MAP = {
-  Coins: <Coins size={24} className="text-red-500" />,
-  RefreshCw: <RefreshCw size={24} className="text-blue-500" />,
-  Gavel: <Gavel size={24} className="text-purple-500" />,
-  AlertTriangle: <AlertTriangle size={24} className="text-amber-500" />,
-  ShieldAlert: <ShieldAlert size={24} className="text-red-500" />,
-  Lock: <Lock size={24} className="text-slate-500" />,
-  CloudRain: <CloudRain size={24} className="text-blue-400" />,
-  ShieldCheck: <ShieldCheck size={24} className="text-emerald-500" />
-};
-
-const getStatusStyles = (status) => {
-  if (status === 'Danger') return { bg: 'bg-red-50 text-red-500', label: 'bg-red-500 text-white', icon: <ShieldAlert size={36} /> };
-  if (status === 'Warning') return { bg: 'bg-amber-50 text-amber-500', label: 'bg-amber-500 text-white', icon: <ShieldAlert size={36} /> };
-  return { bg: 'bg-emerald-50 text-emerald-500', label: 'bg-emerald-500 text-white', icon: <CheckCircle size={36} /> };
-};
-
-const formatLocation = (page, line) => {
-    const pStr = page ? String(page) : "";
-    const pNum = pStr.replace(/[^0-9]/g, ''); 
-    const pText = pNum ? `${pNum}페이지` : "전체";
-
-    const lStr = line ? String(line) : "";
-    let lText = "";
-    if (lStr.length > 0 && lStr.length < 15) {
-        const lNum = lStr.replace(/[^0-9~-]/g, '');
-        if (lNum) lText = ` | ${lNum}번째 줄`;
+const Home = ({ onNavigate }) => {
+  // 대시보드 메뉴 아이템 정의 (스마트팜을 가장 먼저 배치)
+  const menuItems = [
+    { 
+      id: 'farm', 
+      title: "스마트팜 허브", 
+      desc: "농지법 검토 및 보조금 리스크 스캔", 
+      icon: <Leaf size={32} />, 
+      color: "bg-emerald-50 text-emerald-600", 
+      active: true 
+    },
+    { 
+      id: 'it', 
+      title: "IT 외주 가디언", 
+      desc: "SOW 확정 및 IP 분쟁 방지", 
+      icon: <Cpu size={32} />, 
+      color: "bg-purple-50 text-purple-600", 
+      active: true 
+    },
+    { 
+      id: 'legal', 
+      title: "법률 라이브러리", 
+      desc: "7대 필수 서류 양식 무상 제공", 
+      icon: <Scale size={32} />, 
+      color: "bg-blue-50 text-blue-600", 
+      active: true 
+    },
+    { 
+      id: 'biz', 
+      title: "비즈니스 지표", 
+      desc: "계약 리스크 통합 관리 대시보드", 
+      icon: <BarChart3 size={32} />, 
+      color: "bg-slate-50 text-slate-600", 
+      active: false 
     }
-    return `${pText}${lText}`;
-};
-
-// 사용자 직관성을 위한 변수 세팅
-const MAX_FREE_TOKENS = 100000; 
-const AVG_CHAT_TOKEN = 400;   
-const AVG_DOC_TOKEN = 2500;   
-
-// =========================================================================
-// 🚀 ReportView 컴포넌트
-// =========================================================================
-const ReportView = ({ data, setView }) => {
-    const reportRef = useRef(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    
-    const [usedTokens, setUsedTokens] = useState(0);
-
-    // 🚀 [글로벌 동기화 엔진 탑재]
-    useEffect(() => {
-        const syncTokens = () => setUsedTokens(parseInt(localStorage.getItem('nextlaw_used_tokens') || '0', 10));
-        syncTokens(); // 마운트 시 즉시 불러오기
-        window.addEventListener('tokensUpdated', syncTokens); // 타 컴포넌트에서 썼을 때 즉시 감지
-        return () => window.removeEventListener('tokensUpdated', syncTokens);
-    }, []);
-
-    if (!data) return <div className="text-center py-40 font-black text-slate-400 italic">데이터를 불러오는 중입니다...</div>;
-
-    let safeSections = [];
-    if (Array.isArray(data.sections)) safeSections = data.sections;
-    else if (data.sections && typeof data.sections === 'object') safeSections = Object.values(data.sections);
-
-    const handleDownloadPdf = async () => {
-        const element = reportRef.current;
-        if (!element) return;
-
-        setIsGenerating(true); 
-
-        try {
-            if (!window.htmlToImage) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.body.appendChild(script);
-                });
-            }
-
-            if (!window.jspdf) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.body.appendChild(script);
-                });
-            }
-
-            const dataUrl = await window.htmlToImage.toPng(element, {
-                pixelRatio: 2, 
-                backgroundColor: '#f8fafc',
-                style: { margin: '0', padding: '20px' }
-            });
-
-            const pdfWidth = 210; 
-            const tempPdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-            const imgProps = tempPdf.getImageProperties(dataUrl);
-            const customPdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            const pdf = new window.jspdf.jsPDF('p', 'mm', [pdfWidth, customPdfHeight]);
-            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, customPdfHeight);
-
-            pdf.save('NextLaw_AI_법률_리포트.pdf');
-        } catch (error) {
-            console.error('PDF 생성 중 오류 발생:', error);
-            alert('PDF 생성 중 오류가 발생했습니다. 개발자 도구(F12)를 확인해주세요.');
-        } finally {
-            setIsGenerating(false); 
-        }
-    };
-
-    const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
-    const remainingChats = Math.floor(remainingTokens / AVG_CHAT_TOKEN);
-    const remainingDocs = Math.floor(remainingTokens / AVG_DOC_TOKEN);
-
-    return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-[1600px] px-4 md:px-8 mx-auto pb-20 font-sans">
-            
-            <div className="flex flex-wrap xl:flex-nowrap justify-between items-center mb-8 gap-4 px-2 shrink-0 print:hidden">
-                <div className="flex items-center gap-4 min-w-0 shrink-0">
-                    <div className="bg-blue-900 p-3 rounded-xl text-white shadow-sm shrink-0"><FileText size={26} /></div>
-                    <div className="min-w-0">
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight truncate">NextLaw AI 분석 리포트</h2>
-                        <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1 truncate">AI 변호사의 조항별 위험도 상세 진단 결과</p>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-3 shrink-0">
-                    <div 
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-full text-[11px] sm:text-xs font-bold cursor-help shadow-sm whitespace-nowrap shrink-0"
-                        title="현재 제공된 10만 무료 토큰 기준, 향후 가능한 작업 예상 횟수입니다."
-                    >
-                        <Coins size={14} className="text-amber-500" />
-                        <span>잔여 <span className="text-slate-900 font-black">{remainingTokens.toLocaleString()}</span></span>
-                        <span className="opacity-30">|</span>
-                        <span>💬 <span className="text-blue-600 font-black">{remainingChats}</span>번</span>
-                        <span className="opacity-30">|</span>
-                        <span>📄 <span className="text-emerald-600 font-black">{remainingDocs}</span>번</span>
-                    </div>
-
-                    <button onClick={() => setView(null)} className="text-slate-500 font-bold text-sm flex items-center gap-2 hover:text-slate-900 transition-all whitespace-nowrap shrink-0">
-                        <ArrowLeft size={16} /> 다른 문서 검토
-                    </button>
-                    
-                    <button 
-                        onClick={handleDownloadPdf} 
-                        disabled={isGenerating}
-                        className="bg-slate-950 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
-                    >
-                        {isGenerating ? (
-                            <><Loader2 size={16} className="animate-spin" /> 리포트 캡처 중...</>
-                        ) : (
-                            <><Download size={16} /> PDF 다운로드</>
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            <div ref={reportRef} className="space-y-12 p-2 sm:p-6 bg-slate-50 rounded-[3rem]">
-                <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-                    <div className="relative w-48 h-48 flex items-center justify-center shrink-0">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="96" cy="96" r="85" stroke="currentColor" strokeWidth="16" fill="transparent" className="text-slate-100" />
-                            <circle cx="96" cy="96" r="85" stroke="currentColor" strokeWidth="16" fill="transparent" strokeDasharray={534} strokeDashoffset={534 - (534 * data.score) / 100} className={`${data.score < 50 ? 'text-red-500' : 'text-emerald-500'} transition-all duration-1000`} />
-                        </svg>
-                        <div className="absolute text-center">
-                            <span className="text-5xl font-black italic text-slate-900">{data.score}</span>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Risk Score</p>
-                        </div>
-                    </div>
-                    <div className="flex-1 space-y-4 min-w-0">
-                        <div className="inline-block bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black italic">AI 변호사 실전 리스크 진단</div>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter italic">계약 위험도: <span className="text-red-600">{data.score < 50 ? '매우 높음' : '보통'}</span></h3>
-                        <p className="text-slate-500 font-medium leading-relaxed max-w-2xl break-keep">{data.summary}</p>
-                    </div>
-                </div>
-
-                <div className="space-y-12">
-                    {safeSections.length > 0 ? (
-                        safeSections.map((section, idx) => {
-                            try {
-                                return (
-                                    <div key={`sec-${idx}`} className="space-y-6">
-                                        <div className="flex items-center gap-3 ml-2">
-                                            <div className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100">
-                                                {ICON_MAP[section?.icon_type] || <ShieldAlert size={24} className="text-slate-300" />}
-                                            </div>
-                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-800">{section?.category || `섹션 ${idx + 1}`}</h3>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 gap-5">
-                                            {Array.isArray(section?.items) ? section.items.map((item, i) => {
-                                                const styles = getStatusStyles(item?.status); 
-                                                return (
-                                                    <div key={`item-${i}`} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-start gap-8 group hover:border-blue-500 transition-all">
-                                                        <div className={`shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center ${styles.bg}`}>
-                                                            {styles.icon}
-                                                        </div>
-                                                        <div className="space-y-4 flex-1 min-w-0">
-                                                            <div className="flex items-center flex-wrap gap-x-3 gap-y-2">
-                                                                <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-bold text-slate-600 shrink-0 whitespace-nowrap">
-                                                                    <MapPin size={12} /> 
-                                                                    {formatLocation(item?.page, item?.line)}
-                                                                </div>
-                                                                
-                                                                <span 
-                                                                    className="text-xs font-black bg-slate-800 text-white px-3 py-1.5 rounded-full uppercase inline-block max-w-[150px] sm:max-w-[250px] md:max-w-[400px] truncate align-middle shrink-0"
-                                                                    title={item?.clause} 
-                                                                >
-                                                                    {item?.clause || "-"}
-                                                                </span>
-                                                                
-                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded shrink-0 whitespace-nowrap ${styles.label}`}>
-                                                                    {item?.status || "Unknown"}
-                                                                </span>
-                                                            </div>
-                                                            <h4 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors break-keep">{item?.title || "제목 없음"}</h4>
-                                                            <p className="text-slate-600 text-base leading-relaxed break-keep">{item?.desc || "내용이 없습니다."}</p>
-                                                            <div className="flex items-center gap-2 text-xs font-bold bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 inline-flex">
-                                                                <Scale size={14} className="text-slate-400 shrink-0" />
-                                                                <span className="text-slate-500 break-keep">근거 법령: <span className="text-slate-700">{item?.law || "-"}</span></span>
-                                                            </div>
-                                                            <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50 mt-2">
-                                                                <p className="text-blue-800 text-sm font-bold leading-relaxed break-keep">💡 {item?.tip || "전문가 팁이 제공되지 않았습니다."}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }) : (
-                                                <div className="p-5 text-amber-600 font-bold bg-amber-50 rounded-2xl">
-                                                    ⚠️ 이 섹션의 상세 항목(items) 데이터가 없습니다.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            } catch (renderError) {
-                                return (
-                                    <div key={`error-${idx}`} className="p-6 bg-red-50 border border-red-200 text-red-600 rounded-2xl font-bold">
-                                        🚨 {idx + 1}번째 블록 렌더링 중 오류 발생: {renderError.message}
-                                    </div>
-                                );
-                            }
-                        })
-                    ) : (
-                        <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-red-200">
-                            <p className="text-red-500 font-bold text-xl">분석 데이터(sections)를 불러올 수 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </motion.div>
-    );
-};
-
-// =========================================================================
-// 🚀 Home 컴포넌트
-// =========================================================================
-const Home = ({ result, setResult }) => {
-  const [file, setFile] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("부동산 임대차 계약서");
-  const [usedTokens, setUsedTokens] = useState(0);
-
-  // 🚀 [글로벌 동기화 엔진 탑재]
-  useEffect(() => {
-    const syncTokens = () => setUsedTokens(parseInt(localStorage.getItem('nextlaw_used_tokens') || '0', 10));
-    syncTokens(); // 첫 마운트 시 동기화
-    window.addEventListener('tokensUpdated', syncTokens); // 이벤트 리스너 등록
-    return () => window.removeEventListener('tokensUpdated', syncTokens);
-  }, []);
-
-  const handleUpload = async () => {
-    if (!file) return alert("파일을 선택해주세요.");
-    setAnalyzing(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('document_type', selectedCategory); 
-
-    try {
-      const res = await axios.post('http://localhost:8000/api/v1/analyze/contract', formData);
-      
-      // 🚀 사용량 차감 & 커스텀 이벤트(tokensUpdated) 발생!
-      const currentTokens = parseInt(localStorage.getItem('nextlaw_used_tokens') || '0', 10);
-      const newTokens = currentTokens + AVG_DOC_TOKEN;
-      localStorage.setItem('nextlaw_used_tokens', newTokens);
-      window.dispatchEvent(new Event('tokensUpdated')); // 🔥 전역으로 "토큰 썼다!"라고 알림
-      setUsedTokens(newTokens);
-
-      let finalData = res.data?.data || res.data;
-      if (typeof finalData === 'string') finalData = JSON.parse(finalData);
-      if (finalData?.analysis_result) finalData = finalData.analysis_result; 
-
-      setResult(finalData);
-    } catch (err) {
-      console.error(err);
-      alert("분석 실패: 백엔드 서버를 확인해주세요.");
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
-  const remainingChats = Math.floor(remainingTokens / AVG_CHAT_TOKEN);
-  const remainingDocs = Math.floor(remainingTokens / AVG_DOC_TOKEN);
-
-  if (result) {
-    return <ReportView data={result} setView={setResult} />;
-  }
+  ];
 
   return (
-    <div className="w-full max-w-[1600px] px-4 md:px-8 mx-auto h-[94vh] flex flex-col font-sans pb-6">
-      
-      <div className="flex flex-wrap lg:flex-nowrap justify-between items-center mb-8 gap-4 px-2 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="bg-blue-900 p-3 rounded-xl text-white shadow-sm"><FileText size={26} /></div>
-          <div>
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">NextLaw AI 계약서 자동 검토</h2>
-            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1">모든 분야의 법률 문서 독소조항 스캔</p>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0 }} 
+      className="space-y-12 w-full max-w-[1600px] mx-auto"
+    >
+      {/* 🚀 상단 환영 섹션 */}
+      <section className="space-y-4 px-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-black uppercase tracking-widest border border-emerald-100">
+              <Sparkles size={14} /> Smart Farm Priority Mode
           </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-4 shrink-0">
-          <div 
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-full text-[11px] sm:text-xs font-bold cursor-help shadow-sm whitespace-nowrap shrink-0"
-            title="현재 제공된 10만 무료 토큰 기준, 향후 가능한 작업 예상 횟수입니다."
-          >
-            <Coins size={14} className="text-amber-500" />
-            <span>잔여 <span className="text-slate-900 font-black">{remainingTokens.toLocaleString()}</span></span>
-            <span className="opacity-30">|</span>
-            <span>💬 <span className="text-blue-600 font-black">{remainingChats}</span>번</span>
-            <span className="opacity-30">|</span>
-            <span>📄 <span className="text-emerald-600 font-black">{remainingDocs}</span>번</span>
-          </div>
-        </div>
-      </div>
+          <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+              NextLaw Hub <br/>
+              <span className="text-slate-400">Safe Business Infrastructure.</span>
+          </h2>
+      </section>
 
-      <div className="flex-1 bg-slate-200/70 rounded-3xl border border-slate-300 flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden relative">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="max-w-2xl w-full bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative z-10 overflow-hidden"
-        >
-          <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-
-          <div className="text-center space-y-4 mb-10 relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 font-bold text-sm mb-2 border border-blue-100">
-                <Sparkles size={16} />
-                <span>NextLaw AI Engine</span>
-            </div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">AI Contract Review</h2>
-            <p className="text-slate-500 font-medium">전문 AI 변호사가 계약서의 치명적인 독소조항을 꼼꼼하게 찾아냅니다.</p>
-          </div>
-
-          <div className="space-y-8 relative z-10">
-            
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700 ml-1">
-                <span className="bg-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px]">1</span>
-                검토할 계약서의 종류를 선택해주세요
-              </label>
-              <div className="relative w-full">
-                <select
-                  className="w-full font-bold text-[15px] bg-slate-50 border border-slate-200 text-slate-800 px-5 py-4 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 cursor-pointer transition-all appearance-none shadow-sm hover:bg-slate-100"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="부동산 임대차 계약서">🏠 부동산 임대차 계약서</option>
-                  <option value="근로 계약서">💼 근로 / 노동 계약서</option>
-                  <option value="금전 소비대차 계약서">💰 금전 소비대차 (차용증)</option>
-                  <option value="비밀유지 계약서(NDA)">🔒 비밀유지 계약서 (NDA)</option>
-                  <option value="용역/프리랜서 계약서">💻 용역 / 프리랜서 계약서</option>
-                  <option value="동업 계약서">🤝 동업 계약서</option>
-                  <option value="기타 일반 계약서">📄 기타 일반 계약서</option>
-                </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700 ml-1">
-                <span className="bg-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px]">2</span>
-                계약서 원본 파일 업로드 (PDF, DOCX)
-              </label>
-              <div 
-                className={`h-56 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-300 ${file ? 'border-blue-500 bg-blue-50/50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-blue-400'}`}
-                onClick={() => !analyzing && document.getElementById('file-upload').click()}
+      {/* 🚀 버티컬 모듈 카드 그리드 */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 px-2">
+          {menuItems.map((item) => (
+              <motion.div 
+                key={item.id} 
+                whileHover={{ y: -8, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} 
+                onClick={() => item.active && onNavigate('analyze')} 
+                className={`group p-8 rounded-[3rem] border border-slate-200 bg-white cursor-pointer relative transition-all ${!item.active && 'opacity-60 cursor-not-allowed'}`}
               >
-                <input id="file-upload" type="file" className="hidden" onChange={(e) => setFile(e.target.files[0])} accept=".pdf,.doc,.docx" />
-                
-                {analyzing ? (
-                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                ) : file ? (
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner">
-                        <CheckCircle2 size={32} />
-                    </div>
-                ) : (
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
-                        <UploadCloud size={32} />
-                    </div>
-                )}
+                  <div className={`w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform shadow-sm`}>
+                    {item.icon}
+                  </div>
+                  <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-slate-900">{item.title}</h3>
+                        <ArrowUpRight size={20} className="text-slate-300 group-hover:text-emerald-600 transition-colors" />
+                      </div>
+                      <p className="text-slate-500 font-bold text-sm leading-relaxed break-keep">{item.desc}</p>
+                  </div>
+                  {!item.active && (
+                    <span className="absolute top-6 right-8 bg-amber-100 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Wait</span>
+                  )}
+              </motion.div>
+          ))}
+      </section>
 
-                <div className="text-center px-4">
-                    {file ? (
-                        <>
-                            <p className="text-lg font-black text-blue-900 break-all">{file.name}</p>
-                            <p className="text-sm font-bold text-blue-600 mt-1">파일이 성공적으로 첨부되었습니다.</p>
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-base font-bold text-slate-700">클릭하여 파일을 업로드하세요</p>
-                            <p className="text-sm text-slate-400 mt-1">또는 여기로 파일을 드래그 앤 드롭</p>
-                        </>
-                    )}
-                </div>
+      {/* 🚀 하단 인사이트 섹션 (스마트팜 집중 노출) */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-2">
+          <div className="lg:col-span-2 bg-slate-900 rounded-[3.5rem] p-12 text-white relative overflow-hidden group">
+              <div className="relative z-10 space-y-6">
+                  <span className="text-emerald-400 font-black tracking-widest text-xs uppercase italic">Smart Farm Intelligence</span>
+                  <h3 className="text-4xl font-black leading-tight tracking-tighter italic">
+                    "청년 창업농 보조금 환수의 <br/>
+                    <span className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-8">80%</span>는 부적절한 임대차 계약 때문입니다."
+                  </h3>
+                  <p className="text-slate-400 font-medium max-w-xl text-lg break-keep">
+                    농지법 제23조 위반 여부를 NextLaw AI 엔진으로 지금 즉시 확인하고 정부 지원금을 안전하게 지키세요.
+                  </p>
+                  <button 
+                    onClick={() => onNavigate('analyze')}
+                    className="px-8 py-4 bg-emerald-600 rounded-2xl font-black text-sm hover:bg-white hover:text-slate-900 transition-all shadow-lg shadow-emerald-900/20"
+                  >
+                    스마트팜 계약서 정밀 분석하기
+                  </button>
               </div>
-            </div>
-
-            <button 
-                onClick={handleUpload} 
-                disabled={!file || analyzing} 
-                className="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl font-black text-[17px] hover:from-blue-700 hover:to-blue-600 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3 mt-4"
-            >
-              {analyzing ? (
-                  <><Loader2 className="animate-spin" size={20} /> AI 변호사가 독소조항을 스캔하고 있습니다...</>
-              ) : (
-                  <><ShieldCheck size={20} /> AI 위험도 분석 시작하기</>
-              )}
-            </button>
-
+              <div className="absolute right-[-5%] top-1/2 -translate-y-1/2 opacity-10 rotate-12 pointer-events-none group-hover:rotate-0 transition-transform duration-1000">
+                <Leaf size={400} />
+              </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+
+          <div className="bg-white rounded-[3.5rem] p-10 border border-slate-200 flex flex-col justify-between shadow-sm">
+              <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-lg font-black text-slate-800 italic">Quick Connect</h4>
+                    <TrendingUp size={20} className="text-emerald-500" />
+                  </div>
+                  <div className="space-y-5">
+                      {[
+                        { name: '스마트팜 시공 분쟁 전문', tag: '농지법' },
+                        { name: 'IT 저작권 전문 변호사', tag: '하도급' },
+                        { name: '임금체불 전문 노무사', tag: '근로기준' }
+                      ].map((expert, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer group hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-100">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-slate-700 group-hover:text-emerald-700">{expert.name}</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase">{expert.tag}</span>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-600" />
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              <button className="w-full py-4 bg-slate-100 rounded-2xl text-xs font-black text-slate-500 mt-8 hover:bg-slate-200 transition-colors tracking-widest uppercase">
+                Find All Vertical Experts
+              </button>
+          </div>
+      </section>
+    </motion.div>
   );
 };
 

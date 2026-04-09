@@ -49,7 +49,7 @@ const Recommend = () => {
   const fetchLegalUpdates = async () => {
     setUpdating(true);
     try {
-      const res = await axios.get('http://localhost:8000/api/v1/legal-updates/');
+      const res = await axios.get('http://localhost:8000/api/v1/legal/updates');
       
       let newsArray = [];
       if (res.data && typeof res.data === 'object') {
@@ -308,8 +308,17 @@ const Recommend = () => {
                 return (
                   <motion.div
                     key={item.id || idx}
-                    onClick={() => window.open(item.link, '_blank')}
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    onClick={() => {
+                        const url = item.link || item.url;
+
+                                if (url) {
+                                  window.open(url, '_blank');
+                                } else {
+                                  console.log("링크 없음:", item); // 디버깅용
+                                  alert("이 기사에는 링크가 없습니다.");
+                                }
+                              }}
+                          initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: idx * 0.05 }}

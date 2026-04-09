@@ -1,34 +1,43 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-# 🚀 [핵심] 여기서 recommend를 불러와야 에러가 안 나!
-from app.api.v1 import recommend, analyze, legal, chat
+import time
+
+from app.api.v1.endpoints.analyze import router as analyze_router
+from app.api.v1.endpoints.legal import router as legal_router
+from app.api.v1.endpoints.chat import router as chat_router
+
+
 
 app = FastAPI(title="NextLaw 2.0 API")
+app.include_router(analyze_router, prefix="/api/v1/analyze", tags=["analyze"])
+app.include_router(legal_router, prefix="/api/v1/legal", tags=["legal"])
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 
-# 🌐 CORS 설정 (프론트엔드 통신 허용)
-# 5173(Vite)에서 오는 요청을 8000(FastAPI)이 받아줄 수 있게 해줌
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # 개발 중에는 모든 도메인 허용
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🛤️ 라우터 등록
-# 여기서 recommend.router를 사용하기 때문에 상단 import가 필수야!
-app.include_router(recommend.router, prefix="/api/v1/recommend", tags=["recommend"])
-app.include_router(analyze.router, prefix="/api/v1/analyze", tags=["analyze"])
-app.include_router(legal.router, prefix="/api/v1", tags=["legal"])
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    print(f"📡 [LOG] {request.method} {request.url.path} - Status: {response.status_code} ({duration:.2f}s)")
+    return response
+
+
 @app.get("/")
 async def root():
     return {
         "status": "online",
-        "message": "NextLaw 2.0 API Server is running",
+        "message": "NextLaw 2.0 API Server is running perfectly!",
         "version": "2.0.0"
     }
 
-# 서버 실행 확인 로그 (터미널에서 확인용)
-print("✅ NextLaw 2.0 백엔드 엔진 가동 시작!")
-print("🚀 API 주소: http://localhost:8000/api/v1/recommend/")
+print("✅ NextLaw Hub 백엔드 엔진 가동 시작!")
+print("🚀 API 서버 주소: http://localhost:8000")
+print("📖 API 문서 주소: http://localhost:8000/docs")

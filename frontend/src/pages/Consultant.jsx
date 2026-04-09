@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
     Send, Loader2, User, ShieldCheck, FileText, Download, ArrowLeft, 
     Gavel, Scale, Sparkles, BookOpen, AlertCircle, Library, Printer, 
-    Copy, Save, CheckCircle, ChevronLeft, ChevronRight, Coins 
+    Copy, Save, CheckCircle, ChevronLeft, ChevronRight, Coins, Leaf
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -212,6 +212,43 @@ const docTemplates = {
         </div>
       </div>
     `
+  },
+  smart_farm_construction: {
+    title: "스마트팜 시공 계약서",
+    contentHtml: `
+      <div style="font-family: 'Pretendard Variable', sans-serif; font-size: 15px; line-height: 1.8; color: #1e293b; text-align: left;">
+        <h1 style="text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 35px; color: #0f172a;">스마트팜 시공 계약서</h1>
+        <p style="margin-bottom: 20px;">발주자 [발주자 이름](이하 "갑"이라 한다)와 시공사 [시공사 이름](이하 "을"이라 한다)는 아래와 같이 스마트팜 시공 계약을 체결한다.</p>
+
+        <div style="background-color: #f8fafc; padding: 20px; border: 1px solid #cbd5e1; margin-bottom: 30px;">
+          <p style="margin: 0 0 10px 0;"><strong>1. 공 사 명 :</strong> [스마트팜 온실 구축 공사]</p>
+          <p style="margin: 0 0 10px 0;"><strong>2. 공사 장소 :</strong> [공사 현장 주소]</p>
+          <p style="margin: 0 0 10px 0;"><strong>3. 공사 기간 :</strong> 20[  ]년 [  ]월 [  ]일 ~ 20[  ]년 [  ]월 [  ]일</p>
+          <p style="margin: 0;"><strong>4. 도급 금액 :</strong> 일금 [        ]원정 (₩ [        ])</p>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">제1조 (목적)</h2>
+        <p>본 계약은 "갑"이 "을"에게 위탁한 스마트팜(온실, ICT 장비, 제어 시스템 등) 시공 업무를 "을"이 성실히 수행함에 있어 필요한 제반 사항을 정함을 목적으로 한다.</p>
+
+        <h2 style="font-size: 18px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 12px;">제2조 (지체상금)</h2>
+        <p>"을"이 계약 기간 내에 공사를 완공하지 못할 경우, 지연일수 1일당 총 도급 금액의 [ 0.1 ]%에 해당하는 지체상금을 "갑"에게 현금으로 납부하거나 잔금에서 공제한다.</p>
+
+        <h2 style="font-size: 18px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 12px;">제3조 (하자담보책임)</h2>
+        <p>1. "을"은 공사 준공 후 [ 2 ]년 동안 하자보수를 무상으로 책임진다.<br>
+        2. "을"은 준공 검사 완료 시 총 도급 금액의 [ 10 ]%에 해당하는 하자보수이행보증증권을 "갑"에게 제출하여야 한다.</p>
+
+        <h2 style="font-size: 18px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 12px;">제4조 (데이터 및 제어권 귀속)</h2>
+        <p>본 스마트팜 시설에서 수집되는 모든 농생명 데이터의 소유권과 환경 제어 시스템(소프트웨어)의 최고 관리자 권한은 잔금 완납과 동시에 "갑"에게 영구적으로 귀속된다.</p>
+
+        <div style="text-align: center; margin-top: 60px;">
+          <p>20[  ]년 [  ]월 [  ]일</p>
+          <div style="display: flex; justify-content: space-around; margin-top: 30px;">
+            <p>갑 (발주자) : [발주자 이름] (인)</p>
+            <p>을 (시공사) : [시공사 이름] (인)</p>
+          </div>
+        </div>
+      </div>
+    `
   }
 };
 
@@ -257,6 +294,7 @@ const Consultant = () => {
 
   const docLibrary = [
     { id: 'property_lease', category: '부동산/임대차', title: "부동산 임대차 계약서", icon: <FileText size={28} className="text-blue-600" />, desc: "월세, 전세 계약 등 주거용 부동산 거래 시 필수", law: "주택임대차보호법" },
+    { id: 'smart_farm_construction', category: '농업/스마트팜', title: "스마트팜 시공 계약서", icon: <Leaf size={28} className="text-emerald-600" />, desc: "스마트팜 온실 및 ICT 설비 구축 시 필수", law: "건설산업기본법" },
     { id: 'contents_of_proof', category: '일반/행정', title: "내용증명", icon: <FileText size={28} className="text-blue-600" />, desc: "전세사기, 계약불이행 등 공식 항의용", law: "민법 제450조" },
     { id: 'debt_demand', category: '금전/채권', title: "채무 변제 요구서", icon: <Scale size={28} className="text-slate-700" />, desc: "빌려준 돈, 중고거래 미환불 대응용", law: "민법 제397조" },
     { id: 'contract_termination', category: '일반/행정', title: "계약 해지 통보서", icon: <AlertCircle size={28} className="text-amber-600" />, desc: "임대차/서비스 계약의 공식 종료 통보", law: "민법 제543조" },
