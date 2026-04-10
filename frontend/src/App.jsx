@@ -13,7 +13,7 @@ import SmartFarmDashboard from './modules/core_analyze/ui/farm_hub/ui/SmartFarmD
 import ITDashboard from './modules/core_analyze/ui/it_hub/ui/ITDashboard';
 import Recommend from './pages/Recommend';
 import ReportView from "./modules/core_analyze/ui/ReportView.jsx";
-import Simulator from './modules/smartfarm_simulator/Simulator';
+import Simulator from './modules/smartfarm_simulator/pages/Simulator.jsx';
 // =========================================================================
 // 🧱 [Constants & Shared Logic]
 // =========================================================================

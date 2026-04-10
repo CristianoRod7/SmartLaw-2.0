@@ -1,0 +1,90 @@
+[33mcommit 41e5a1206c685deafb4d1649def4c03bf7e84342[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: NextLaw <kywksj200@gmail.com>
+Date:   Thu Apr 9 20:45:58 2026 +0900
+
+    fix: remove nested repo
+
+M	.env
+M	.gitignore
+D	app/__pycache__/__init__.cpython-314.pyc
+D	app/__pycache__/main.cpython-314.pyc
+D	app/api/serializers.py
+D	app/api/services.py
+D	app/api/urls.py
+D	app/api/v1/analyze.py
+R100	app/api/v1/__init__.py	app/api/v1/endpoints/__init__.py
+A	app/api/v1/endpoints/analyze.py
+R100	app/api/v1/chat.py	app/api/v1/endpoints/chat.py
+M	app/api/v1/endpoints/legal.py
+D	app/api/v1/legal.py
+D	app/api/v1/recommend.py
+D	app/api/views.py
+M	app/main.py
+A	app/prompts/__init__.py
+A	app/prompts/base_system.py
+A	app/prompts/doc_consultant.py
+A	app/prompts/industry_farm.py
+A	app/prompts/industry_it.py
+A	app/prompts/industry_real_estate.py
+D	app/services/__pycache__/ai_service.cpython-314.pyc
+D	app/services/__pycache__/crawler.cpython-314.pyc
+M	app/services/ai_service.py
+M	app/services/crawler.py
+M	app/services/legal_service.py
+M	frontend/package-lock.json
+M	frontend/package.json
+A	frontend/public/samples/farmland_lease.pdf
+A	frontend/public/samples/smartfarm_build.pdf
+A	frontend/public/samples/smartfarm_full.pdf
+A	frontend/public/samples/subsidy.pdf
+M	frontend/src/App.jsx
+M	frontend/src/api/analyze.js
+A	frontend/src/api/legal.js
+D	frontend/src/api/models.py
+D	frontend/src/api/serializers.py
+D	frontend/src/api/services.py
+D	frontend/src/api/urls.py
+D	frontend/src/api/views.py
+A	frontend/src/components/ReportView.jsx
+A	frontend/src/components/analysis/AnalysisView.jsx
+A	frontend/src/components/analysis/Dashboard.jsx
+M	frontend/src/main.jsx
+A	frontend/src/modules/core_analyze/api/analyzeApi.js
+A	frontend/src/modules/core_analyze/configs/SmartfarmConfig.js
+A	frontend/src/modules/core_analyze/configs/freelancerConfig.js
+A	frontend/src/modules/core_analyze/configs/realEstateConfig.js
+A	frontend/src/modules/core_analyze/fields/FreelancerFields.jsx
+A	frontend/src/modules/core_analyze/fields/RealEstateFields.jsx
+A	frontend/src/modules/core_analyze/fields/SmartFarmFields.jsx
+A	frontend/src/modules/core_analyze/ui/Analyze.jsx
+A	frontend/src/modules/core_analyze/ui/AnalyzeButton.jsx
+A	frontend/src/modules/core_analyze/ui/CategorySelect.jsx
+A	frontend/src/modules/core_analyze/ui/ReportView.jsx
+A	frontend/src/modules/core_analyze/ui/UploadBox.jsx
+A	frontend/src/modules/core_analyze/ui/farm_hub/ui/SmartFarmDashboard.jsx
+A	frontend/src/modules/core_analyze/ui/it_hub/ui/ITDashboard.jsx
+A	frontend/src/modules/core_analyze/ui/legal_hub/ui/LegalDashboard.jsx
+A	frontend/src/modules/core_analyze/utils/formatAnalysisData.js
+A	frontend/src/modules/core_analyze/utils/getIndustryFromCategory.js
+A	frontend/src/modules/smartfarm_simulator/Simulator.jsx
+A	frontend/src/modules/smartfarm_simulator/SimulatorResultView.jsx
+M	frontend/src/pages/Consultant.jsx
+M	frontend/src/pages/Home.jsx
+M	frontend/src/pages/Recommend.jsx
+D	frontend/src/pages/ReportView.jsx
+A	frontend/src/shared/utils/legalUtils.jsx
+A	modules/core_analyze/Analyze.jsx
+A	modules/core_analyze/ReportView.jsx
+A	modules/core_analyze/api/analyzeApi.js
+A	modules/core_analyze/configs/freelancerConfig.js
+A	modules/core_analyze/configs/realEstateConfig.js
+A	modules/core_analyze/configs/smartfarmConfig.js
+A	modules/core_analyze/fields/FreelancerFields.jsx
+A	modules/core_analyze/fields/RealEstateFields.jsx
+A	modules/core_analyze/fields/SmartFarmFields.jsx
+A	modules/core_analyze/ui/AnalyzeButton.jsx
+A	modules/core_analyze/ui/CategorySelect.jsx
+A	modules/core_analyze/ui/UploadBox.jsx
+A	modules/core_analyze/utils/formatAnalysisData.js
+A	modules/core_analyze/utils/getIndustryFromCategory.js
+A	test_models.py

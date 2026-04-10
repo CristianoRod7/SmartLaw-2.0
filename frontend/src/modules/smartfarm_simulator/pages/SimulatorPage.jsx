@@ -12,7 +12,7 @@ import {
   Wrench,
   Users,
 } from 'lucide-react';
-import { analyzeApi } from '../core_analyze/api/analyzeApi';
+import { analyzeApi } from '../../core_analyze/api/analyzeApi';
 
 const Simulator = ({ onBack, onComplete }) => {
   const [form, setForm] = useState({
