@@ -66,7 +66,7 @@ const Home = ({ onNavigate }) => {
               <motion.div 
                 key={item.id} 
                 whileHover={{ y: -8, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} 
-                onClick={() => item.active && onNavigate('analyze')} 
+                onClick={() => item.active && onNavigate(item.id)}
                 className={`group p-8 rounded-[3rem] border border-slate-200 bg-white cursor-pointer relative transition-all ${!item.active && 'opacity-60 cursor-not-allowed'}`}
               >
                   <div className={`w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform shadow-sm`}>
@@ -92,17 +92,17 @@ const Home = ({ onNavigate }) => {
               <div className="relative z-10 space-y-6">
                   <span className="text-emerald-400 font-black tracking-widest text-xs uppercase italic">Smart Farm Intelligence</span>
                   <h3 className="text-4xl font-black leading-tight tracking-tighter italic">
-                    "청년 창업농 보조금 환수의 <br/>
-                    <span className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-8">80%</span>는 부적절한 임대차 계약 때문입니다."
+                    "스마트팜 관련 <br />
+                    <span className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-8">정책과 이슈</span>를 한눈에 확인하세요."
                   </h3>
                   <p className="text-slate-400 font-medium max-w-xl text-lg break-keep">
-                    농지법 제23조 위반 여부를 NextLaw AI 엔진으로 지금 즉시 확인하고 정부 지원금을 안전하게 지키세요.
+                     보조금, 농지 임대차, 스마트팜 구축과 관련된 주요 내용을 쉽고 빠르게 확인할 수 있습니다.
                   </p>
                   <button 
-                    onClick={() => onNavigate('analyze')}
+                    onClick={() => onNavigate('recommend')}
                     className="px-8 py-4 bg-emerald-600 rounded-2xl font-black text-sm hover:bg-white hover:text-slate-900 transition-all shadow-lg shadow-emerald-900/20"
                   >
-                    스마트팜 계약서 정밀 분석하기
+                    정책 확인하기
                   </button>
               </div>
               <div className="absolute right-[-5%] top-1/2 -translate-y-1/2 opacity-10 rotate-12 pointer-events-none group-hover:rotate-0 transition-transform duration-1000">
