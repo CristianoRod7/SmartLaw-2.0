@@ -3,6 +3,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 gunicorn
+
 # Config / Validation
 pydantic
 pydantic-settings
@@ -21,6 +22,7 @@ chromadb
 
 # OCR / Document
 easyocr
+python-bidi==0.3.4
 PyMuPDF
 Pillow
 numpy
