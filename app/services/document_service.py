@@ -1,5 +1,4 @@
 import fitz  # PyMuPDF
-import easyocr
 import numpy as np
 from PIL import Image
 import io
@@ -12,24 +11,26 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 class DocumentService:
     def __init__(self):
-        self.reader = easyocr.Reader(["ko", "en"])
+        self.reader = None
+
+    def _get_reader(self):
+        if self.reader is None:
+            import easyocr
+            self.reader = easyocr.Reader(["ko", "en"])
+        return self.reader
 
     async def process_file(self, file_bytes: bytes, filename: str) -> str:
         ext = Path(filename).suffix.lower()
 
-        # 1. PDF
         if ext == ".pdf":
             return await self._process_pdf(file_bytes)
 
-        # 2. TXT
         if ext == ".txt":
             return await self._process_txt(file_bytes)
 
-        # 3. DOCX
         if ext == ".docx":
             return await self._process_docx(file_bytes)
 
-        # 4. 이미지
         if ext in [".png", ".jpg", ".jpeg", ".webp", ".bmp"]:
             return await self._process_image(file_bytes)
 
@@ -61,7 +62,8 @@ class DocumentService:
     async def _process_image(self, img_bytes: bytes) -> str:
         image = Image.open(io.BytesIO(img_bytes))
         image_np = np.array(image)
-        result = self.reader.readtext(image_np)
+        reader = self._get_reader()
+        result = reader.readtext(image_np)
         return " ".join([res[1] for res in result])
 
 
