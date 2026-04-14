@@ -413,7 +413,7 @@ const Consultant = () => {
 [현재 HTML 양식 (절대 구조를 바꾸지 마세요)]
 ${documentContent}]`;
 
-      const res = await axios.post('http://localhost:8000/api/v1/chat/draft', {
+      const res = await axios.post('`${API_BASE_URL}/api/v1/chat/draft', {
         document_type: selectedDoc.title,
         message: input + hiddenSystemPrompt, 
         history: currentHistory

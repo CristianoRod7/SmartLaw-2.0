@@ -1,12 +1,13 @@
 import json
-from google import genai
-from app.core.config import settings
 import asyncio
+from google import genai
+from fastapi import HTTPException
+
+from app.core.config import settings
 from app.prompts.base_system import SYSTEM_PERSONA
 from app.prompts.industry_it import IT_SCAN_PROMPT
 from app.prompts.industry_farm import FARM_SCAN_PROMPT
 from app.prompts.industry_real_estate import REAL_ESTATE_SCAN_PROMPT
-from fastapi import HTTPException
 
 
 class AIService:
@@ -81,6 +82,75 @@ class AIService:
                     raise HTTPException(status_code=503, detail=f"AI 분석 실패: {str(e)}")
 
         raise HTTPException(status_code=503, detail=f"AI 분석 실패: {str(last_error)}")
+
+    async def draft_document_chat(
+        self,
+        document_type: str,
+        user_message: str,
+        history: list[dict] | None = None
+    ) -> str:
+        if not self.client:
+            raise HTTPException(status_code=503, detail="Gemini API 키가 설정되지 않았습니다.")
+
+        history = history or []
+
+        history_text = "\n".join(
+            [f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in history]
+        )
+
+        prompt = f"""
+너는 대한민국 법률 문서 작성 및 수정 보조 AI다.
+사용자가 선택한 문서 유형에 맞춰 자연스럽고 정확하게 응답해야 한다.
+
+[문서 유형]
+{document_type}
+
+[이전 대화]
+{history_text}
+
+[사용자 요청]
+{user_message}
+
+[응답 지침]
+1. 사용자의 요청에 맞는 문장으로 바로 답변한다.
+2. 문서 작성에 필요한 정보가 부족하면 한 번에 1~2개 정도만 추가 질문한다.
+3. 사용자가 수정 요청을 하면 수정된 내용을 반영해서 제안한다.
+4. 너무 장황하게 설명하지 말고 실무적으로 도움이 되게 작성한다.
+5. 법률 전문가를 사칭하지 말고, 일반적인 법률 문서 작성 보조 수준에서 답한다.
+"""
+
+        last_error = None
+
+        for model_name in self.model_candidates:
+            for attempt in range(3):
+                try:
+                    response = await self.client.aio.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config={
+                            "temperature": 0.3,
+                        }
+                    )
+
+                    if not response.text:
+                        raise HTTPException(status_code=503, detail="AI 응답이 비어 있습니다.")
+
+                    return response.text.strip()
+
+                except Exception as e:
+                    last_error = e
+                    print(f"❌ draft_document_chat 오류 | 모델: {model_name} | 시도 {attempt + 1}/3 | {e}")
+
+                    error_text = str(e).lower()
+                    if "503" in error_text or "unavailable" in error_text or "high demand" in error_text:
+                        if attempt < 2:
+                            await asyncio.sleep(2 * (attempt + 1))
+                            continue
+                        break
+
+                    raise HTTPException(status_code=503, detail=f"AI 문서 채팅 실패: {str(e)}")
+
+        raise HTTPException(status_code=503, detail=f"AI 문서 채팅 실패: {str(last_error)}")
 
     async def analyze_contract_risk(
         self,

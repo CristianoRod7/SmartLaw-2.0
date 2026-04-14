@@ -10,7 +10,7 @@ const History = ({ setView, setResult }) => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await axios.get('http://localhost:8000/api/v1/analyze/history');
+                const res = await axios.get('${API_BASE_URL}/api/v1/analyze/history');
                 setHistory(res.data);
             } catch (err) { console.error("기록 로드 실패"); } 
             finally { setLoading(false); }
@@ -20,7 +20,7 @@ const History = ({ setView, setResult }) => {
 
     const handleDetail = async (id) => {
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/analyze/history/${id}`);
+            const res = await axios.get('${API_BASE_URL}/api/v1/analyze/history/${id}');
             // 🚀 1. 데이터를 부모의 result에 저장
             setResult(res.data.analysis_result); 
             
