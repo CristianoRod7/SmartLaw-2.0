@@ -1,329 +1,334 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  Loader2,
-  UploadCloud,
-  CheckCircle2,
-  FileText,
-  Sprout,
-  Landmark,
-  Coins,
-  Wrench,
-  Users,
-} from 'lucide-react';
-import { analyzeApi } from '../core_analyze/api/analyzeApi';
+import React, { useMemo, useState } from "react";
+import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { runSmartfarmSimulation } from "./api/simulatorApi";
+import { analyzeApi } from "../core_analyze/api/analyzeApi";
+import { mapAnalysisToSimulation } from "./engine/mapAnalysisToSimulation";
+import SimulatorSteps from "./inputs/SimulatorSteps";
+import StepSidebar from "./views/StepSidebar";
+import RiskRadarPanel from "./views/RiskRadarPanel";
+import InterviewHero from "./views/InterviewHero";
+import { motion } from "framer-motion";
 
-const Simulator = ({ onBack, onComplete }) => {
-  const [form, setForm] = useState({
-    contractType: '스마트팜 구축 계약',
-    landType: '임대차',
-    subsidy: '있음',
-    investment: '',
-    outsourcing: '외주 있음',
-    operator: '개인',
-    file: null,
-  });
+const steps = [
+  "운영 정보",
+  "자금 구조",
+  "정책 / 보조금",
+  "계약 참고자료",
+  "최종 확인",
+];
 
+const initialForm = {
+  crop: "딸기",
+  region: "",
+  area: 0,
+  facilityType: "비닐하우스",
+  operationMode: "직영",
+  operationYears: 0,
+
+  initialCost: 0,
+  loanAmount: 0,
+  interestRate: 0,
+  monthlyFixedCost: 0,
+  monthlyVariableCost: 0,
+  monthlyRevenue: 0,
+  laborCost: 0,
+  energyCost: 0,
+
+  hasSubsidy: false,
+  supportProgram: "",
+  mandatoryOperationPeriod: 0,
+  reportingDuty: false,
+  subsidyMemo: "",
+
+  contractType: "스마트팜 구축 계약",
+  counterpartyType: "시공업체",
+
+  contractRiskLevel: "low",
+  maintenanceOwner: "shared",
+  terminationPenaltyLevel: "none",
+  liabilityLevel: "low",
+  subsidyClawbackTrigger: false,
+  dataOwnership: "shared",
+};
+
+export default function Simulator({ onBack, onComplete }) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState(initialForm);
+  const [contractFile, setContractFile] = useState(null);
+  const [contractAnalysis, setContractAnalysis] = useState(null);
+  const [analysisEvidence, setAnalysisEvidence] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [analyzingContract, setAnalyzingContract] = useState(false);
 
   const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
-  const handleSubmit = async () => {
-    if (!form.file) {
-      alert('계약서를 업로드해주세요.');
+  const handleAnalyzeContract = async () => {
+    if (!contractFile) {
+      alert("계약서 파일을 먼저 업로드하세요.");
       return;
     }
 
-    setLoading(true);
-
     try {
-      const formData = new FormData();
-      formData.append('file', form.file);
-      formData.append('contract_type', form.contractType);
-      formData.append('land_type', form.landType);
-      formData.append('subsidy', form.subsidy);
-      formData.append('investment', form.investment || '0');
-      formData.append('outsourcing', form.outsourcing);
-      formData.append('operator', form.operator);
+      setAnalyzingContract(true);
 
-      const res = await analyzeApi.simulateSmartFarm(formData);
-      const finalData = res.data?.data || res.data;
+      const response = await analyzeApi.uploadContract(contractFile, form.contractType);
+      const analysisData = response?.data?.data || response?.data || {};
 
-      onComplete(finalData);
-    } catch (err) {
-      console.error(err);
-      const detail = err.response?.data?.detail || '';
+      setContractAnalysis(analysisData);
 
-      if (String(detail).includes('quota') || String(detail).includes('429')) {
-        alert('Gemini 무료 사용량을 초과했습니다. 잠시 후 다시 시도해주세요.');
-      } else {
-        alert('시뮬레이션 실패: ' + (detail || '백엔드 서버를 확인해주세요.'));
-      }
+      const mapped = mapAnalysisToSimulation(analysisData);
+      setAnalysisEvidence(mapped.evidence || []);
+
+      setForm((prev) => ({
+        ...prev,
+        ...mapped,
+      }));
+
+      alert("계약서 분석 결과를 반영했습니다.");
+    } catch (error) {
+      console.error("계약서 분석 실패:", error);
+      alert(error?.response?.data?.detail || "계약서 분석 중 오류가 발생했습니다.");
+    } finally {
+      setAnalyzingContract(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+
+      const result = await runSmartfarmSimulation({
+        ...form,
+        contractAnalysis,
+        analysisEvidence,
+      });
+
+      onComplete(result);
+    } catch (error) {
+      console.error("시뮬레이션 실패:", error);
+      onComplete({ error: "시뮬레이션 중 오류가 발생했습니다." });
     } finally {
       setLoading(false);
     }
   };
 
-  const SectionCard = ({ icon, title, desc, children }) => (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-start gap-3">
-        <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600 shadow-sm">
-          {icon}
-        </div>
-        <div>
-          <h3 className="text-lg font-black text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm font-medium text-slate-500">{desc}</p>
-        </div>
-      </div>
-      {children}
-    </div>
-  );
+  const stepProgress = Math.round((step / steps.length) * 100);
+  const contractReady = !!contractAnalysis;
+  const evidenceCount = analysisEvidence?.length || 0;
 
-  const Field = ({ label, children }) => (
-    <div className="space-y-2">
-      <label className="text-sm font-extrabold text-slate-700">{label}</label>
-      {children}
-    </div>
-  );
+  const completionHints = useMemo(() => {
+    const completed = [];
 
-  const baseInputClass =
-    'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-bold text-slate-800 outline-none transition focus:border-emerald-400 focus:bg-white';
+    const operationDone =
+      !!form.region?.trim() &&
+      Number(form.area || 0) > 0;
+
+    const financeDone =
+      Number(form.initialCost || 0) > 0 &&
+      Number(form.monthlyRevenue || 0) > 0;
+
+      const subsidyDone =
+    form.hasSubsidy
+      ? Number(form.mandatoryOperationPeriod || 0) > 0
+      : false;
+
+      if (operationDone) completed.push("운영 정보 입력됨");
+      if (financeDone) completed.push("자금 구조 입력됨");
+      if (subsidyDone) completed.push("보조금 정보 입력됨");
+      if (contractReady) completed.push("계약서 분석 반영됨");
+
+  return completed;
+}, [form, contractReady]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-6xl mx-auto pb-20 space-y-8"
-    >
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 shadow-sm transition hover:bg-slate-50"
-        >
-          <ArrowLeft size={18} />
-          스마트팜 허브로
-        </button>
-
-        <div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900">
-            스마트팜 리스크 시뮬레이터
-          </h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            계약서 내용과 현장 조건을 함께 반영해 미래 리스크를 예측합니다.
-          </p>
-        </div>
-      </div>
-
-      <div className="relative overflow-hidden rounded-[2.8rem] border border-emerald-200/40 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 text-white shadow-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_25%)]" />
-        <div className="relative z-10 grid grid-cols-1 gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
-              Smart Farm Scenario Engine
-            </div>
-            <h3 className="text-3xl font-black leading-tight md:text-4xl">
-              계약 조건만 보지 말고,
-              <br />
-              <span className="text-emerald-300">운영 조건까지 같이 보자.</span>
-            </h3>
-            <p className="max-w-2xl break-keep text-sm leading-7 text-slate-300 md:text-base">
-              농지 사용 형태, 보조금 여부, 투자 규모, 외주 구조를 함께 반영해
-              6개월 후와 1년 후 발생 가능한 스마트팜 리스크를 시뮬레이션합니다.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                예측 대상
-              </p>
-              <p className="mt-3 text-lg font-black">보조금 환수</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                예측 대상
-              </p>
-              <p className="mt-3 text-lg font-black">농지 임대차 분쟁</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                예측 대상
-              </p>
-              <p className="mt-3 text-lg font-black">시공 하자 책임</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                출력 결과
-              </p>
-              <p className="mt-3 text-lg font-black">우선 조치 3가지</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative">
-        {loading && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-[2.5rem] bg-white/90 backdrop-blur-sm text-center">
-            <Loader2 className="mb-5 h-16 w-16 animate-spin text-emerald-600" />
-            <h3 className="text-2xl font-black text-slate-900">시뮬레이션 중...</h3>
-            <p className="mt-2 font-bold text-slate-500">
-              계약 조건과 현장 구조를 바탕으로 미래 리스크를 계산하고 있습니다.
-            </p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr]">
-          <SectionCard
-            icon={<FileText size={22} />}
-            title="계약 및 농지 정보"
-            desc="계약 유형과 농지 구조를 먼저 정의합니다."
-          >
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <Field label="계약 유형">
-                <select
-                  className={baseInputClass}
-                  value={form.contractType}
-                  onChange={(e) => handleChange('contractType', e.target.value)}
-                >
-                  <option value="스마트팜 구축 계약">스마트팜 구축 계약</option>
-                  <option value="농지 임대차 계약">농지 임대차 계약</option>
-                  <option value="보조금 관련 문서">보조금 관련 문서</option>
-                  <option value="스마트팜 종합 분석">스마트팜 종합 분석</option>
-                </select>
-              </Field>
-
-              <Field label="농지 사용 형태">
-                <select
-                  className={baseInputClass}
-                  value={form.landType}
-                  onChange={(e) => handleChange('landType', e.target.value)}
-                >
-                  <option value="자가">자가</option>
-                  <option value="임대차">임대차</option>
-                  <option value="혼합">혼합</option>
-                  <option value="미정">미정</option>
-                </select>
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            icon={<Coins size={22} />}
-            title="보조금 및 투자 조건"
-            desc="재정 구조와 정책 연동 여부를 입력합니다."
-          >
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <Field label="보조금 여부">
-                <select
-                  className={baseInputClass}
-                  value={form.subsidy}
-                  onChange={(e) => handleChange('subsidy', e.target.value)}
-                >
-                  <option value="있음">있음</option>
-                  <option value="신청 예정">신청 예정</option>
-                  <option value="없음">없음</option>
-                </select>
-              </Field>
-
-              <Field label="총 투자 규모 (만원)">
-                <input
-                  type="number"
-                  placeholder="예: 5000"
-                  className={baseInputClass}
-                  value={form.investment}
-                  onChange={(e) => handleChange('investment', e.target.value)}
-                />
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            icon={<Wrench size={22} />}
-            title="시공 및 외주 구조"
-            desc="누가 시공하고 누가 책임지는지 반영합니다."
-          >
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <Field label="시공 / 설비 외주 여부">
-                <select
-                  className={baseInputClass}
-                  value={form.outsourcing}
-                  onChange={(e) => handleChange('outsourcing', e.target.value)}
-                >
-                  <option value="외주 있음">외주 있음</option>
-                  <option value="부분 외주">부분 외주</option>
-                  <option value="직접 진행">직접 진행</option>
-                </select>
-              </Field>
-
-              <Field label="운영 주체">
-                <select
-                  className={baseInputClass}
-                  value={form.operator}
-                  onChange={(e) => handleChange('operator', e.target.value)}
-                >
-                  <option value="개인">개인</option>
-                  <option value="가족 공동 운영">가족 공동 운영</option>
-                  <option value="법인">법인</option>
-                  <option value="파트너 공동 운영">파트너 공동 운영</option>
-                </select>
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            icon={<Users size={22} />}
-            title="계약서 업로드"
-            desc="실제 문서 내용을 함께 반영해야 시뮬레이션 정확도가 올라갑니다."
-          >
-            <div
-              className={`flex h-[220px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed transition-all ${
-                form.file
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-slate-100'
-              }`}
-              onClick={() => document.getElementById('sim-file-upload')?.click()}
-            >
-              <input
-                id="sim-file-upload"
-                type="file"
-                className="hidden"
-                onChange={(e) => handleChange('file', e.target.files?.[0] || null)}
-                accept=".pdf,.txt"
-              />
-
-              {form.file ? (
-                <CheckCircle2 size={42} className="text-emerald-600" />
-              ) : (
-                <UploadCloud size={42} className="text-slate-400" />
-              )}
-
-              <div className="text-center">
-                <p className="font-black text-slate-800">
-                  {form.file ? form.file.name : '클릭하여 계약서를 선택하세요'}
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  PDF 또는 TXT 파일 업로드
+    <div className="mx-auto w-full max-w-[1500px] space-y-6 px-2 md:px-4">
+      {loading && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-slate-900 px-6 py-7 text-white shadow-2xl">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 h-10 w-10 rounded-full border-4 border-emerald-400 border-t-transparent animate-spin" />
+              <div>
+                <h3 className="text-xl font-black tracking-tight">분석 중입니다</h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-300 break-keep">
+                  입력한 운영 정보와 계약서 분석 결과를 종합해 6개월 / 1년 리스크를 계산하고 있습니다.
                 </p>
               </div>
             </div>
-          </SectionCard>
+          </div>
+        </div>
+      )}
+
+      <section className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-gradient-to-r from-slate-950 via-slate-950 to-emerald-950 px-6 py-8 text-white shadow-[0_18px_40px_rgba(15,23,42,0.10)] md:px-8">
+        <motion.div
+  aria-hidden="true"
+  className="pointer-events-none absolute right-[-30px] top-1/2 -translate-y-1/2 opacity-[0.12]"
+  animate={{
+    y: [0, -10, 0],
+    rotate: [0, 2, 0],
+    scale: [1, 1.02, 1],
+  }}
+  transition={{
+    duration: 5,
+    repeat: Infinity,
+    ease: "easeInOut",
+  }}
+>
+  <svg
+    width="320"
+    height="320"
+    viewBox="0 0 320 320"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-emerald-200"
+  >
+    <path
+      d="M255 42C220 48 164 70 122 112C84 150 70 195 75 231C80 266 100 289 100 289"
+      stroke="currentColor"
+      strokeWidth="18"
+      strokeLinecap="round"
+    />
+    <path
+      d="M263 56C278 111 271 172 238 216C198 269 128 285 81 255C39 228 36 169 69 129C99 92 151 78 198 69C224 64 247 60 263 56Z"
+      stroke="currentColor"
+      strokeWidth="18"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M104 210C136 199 173 186 203 159"
+      stroke="currentColor"
+      strokeWidth="18"
+      strokeLinecap="round"
+    />
+  </svg>
+</motion.div>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-black tracking-wider text-emerald-200">
+              <ShieldCheck size={14} />
+              SMARTFARM PRE-CHECK
+            </div>
+
+            <div>
+              <h1 className="whitespace-nowrap text-[2.25rem] font-extrabold tracking-tight md:text-[3rem]">
+                스마트팜 리스크 사전진단
+              </h1>
+              <p className="mt-3 whitespace-nowrap text-[15px] font-medium leading-7 text-slate-300 md:text-[17px]">
+                운영 구조, 자금 상태, 보조금 의무, 계약 조항을 함께 반영해 향후 6개월과 1년 리스크를 전망합니다.
+              </p>
+            </div>
+
+            {completionHints.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {completionHints.map((hint) => (
+                  <span
+                    key={hint}
+                    className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-100 backdrop-blur"
+                  >
+                    {hint}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="shrink-0 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+            >
+              뒤로가기
+            </button>
+          )}
         </div>
 
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-10 py-4 text-lg font-black text-white shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5 hover:bg-emerald-400 disabled:opacity-50"
-          >
-            스마트팜 리스크 시뮬레이션 실행
-          </button>
+        <div className="mt-6">
+          <div className="mb-3 flex items-center justify-between text-xs font-black text-slate-300">
+            <span>진행률</span>
+            <span>{stepProgress}%</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300 transition-all duration-500"
+              style={{ width: `${stepProgress}%` }}
+            />
+          </div>
         </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_minmax(0,1fr)_340px]">
+        <StepSidebar
+          steps={steps}
+          currentStep={step}
+          contractReady={contractReady}
+          evidenceCount={evidenceCount}
+        />
+
+        <main className="space-y-6">
+          <InterviewHero step={step} />
+
+          <SimulatorSteps
+            step={step}
+            form={form}
+            onChange={handleChange}
+            contractFile={contractFile}
+            setContractFile={setContractFile}
+            contractAnalysis={contractAnalysis}
+            onAnalyzeContract={handleAnalyzeContract}
+            analyzingContract={analyzingContract}
+            analysisEvidence={analysisEvidence}
+          />
+
+          <div className="sticky bottom-4 z-20">
+            <div className="rounded-[2rem] border border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep((prev) => Math.max(1, prev - 1))}
+                  disabled={step === 1 || loading || analyzingContract}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} />
+                  이전
+                </button>
+
+                {step < 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => setStep((prev) => Math.min(5, prev + 1))}
+                    disabled={loading || analyzingContract}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white"
+                  >
+                    다음
+                    <ChevronRight size={16} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading || analyzingContract}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-400 disabled:opacity-50"
+                  >
+                    {loading ? "계산 중..." : "최종 실행"}
+                    {!loading && <ArrowRight size={16} />}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <RiskRadarPanel
+          form={form}
+          contractReady={contractReady}
+          evidence={analysisEvidence}
+        />
       </div>
-    </motion.div>
+    </div>
   );
-};
-
-export default Simulator;
+}

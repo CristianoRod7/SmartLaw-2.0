@@ -5,9 +5,6 @@ from app.services.document_service import document_service
 router = APIRouter()
 
 
-# =========================
-# 🔥 기존 계약서 분석 API
-# =========================
 @router.post("/contract")
 async def analyze_contract(
     file: UploadFile = File(...),
@@ -15,6 +12,12 @@ async def analyze_contract(
     document_type: str = Form("스마트팜 구축 계약")
 ):
     try:
+        if not industry or industry == "undefined":
+            industry = "smartfarm"
+
+        if not document_type or document_type == "undefined":
+            document_type = "스마트팜 구축 계약"
+
         print(f"🔥 분석 시작: [{industry}] [{document_type}] - {file.filename}")
 
         contents = await file.read()
@@ -41,6 +44,8 @@ async def analyze_contract(
             "data": analysis_result
         }
 
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -48,9 +53,6 @@ async def analyze_contract(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =========================
-# 🔥 스마트팜 시뮬레이터 API (핵심)
-# =========================
 @router.post("/simulate")
 async def simulate_smartfarm(
     file: UploadFile = File(...),
@@ -93,6 +95,8 @@ async def simulate_smartfarm(
             "data": simulation_result
         }
 
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:

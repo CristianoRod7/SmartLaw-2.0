@@ -10,7 +10,7 @@ import LegalDashboard from './modules/core_analyze/ui/legal_hub/ui/LegalDashboar
 import SmartFarmDashboard from './modules/core_analyze/ui/farm_hub/ui/SmartFarmDashboard';
 import ITDashboard from './modules/core_analyze/ui/it_hub/ui/ITDashboard';
 import Recommend from './pages/Recommend';
-
+import SimulatorResultView from "./modules/smartfarm_simulator/SimulatorResultView";
 const MAX_FREE_TOKENS = 100000;
 
 const App = () => {
@@ -151,15 +151,15 @@ const App = () => {
           )}
 
           {view === 'sim-result' && simData && (
-            <ReportView
-              key="sim-result"
-              data={simData}
-              onReset={() => {
-                setView('farm');
-                setSimData(null);
-              }}
-            />
-          )}
+              <SimulatorResultView
+                key="sim-result"
+                data={simData}
+                onReset={() => {
+                  setView('simulator');
+                  setSimData(null);
+                }}
+              />
+            )}
         </AnimatePresence>
       </div>
     </div>

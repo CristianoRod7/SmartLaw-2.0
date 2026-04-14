@@ -25,7 +25,7 @@ export default function UploadBox({ file, setFile }) {
           id="contract-upload"
           type="file"
           className="hidden"
-          accept=".pdf,.txt"
+          accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
 
