@@ -3,7 +3,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 gunicorn
-
+python-docx
 # Config / Validation
 pydantic
 pydantic-settings
