@@ -44,6 +44,7 @@ const Recommend = () => {
   const fetchLegalUpdates = async () => {
     setUpdating(true);
     try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const res = await axios.get('${API_BASE_URL}/api/v1/legal/news', {
         params: {
           query: searchTerm.trim() || undefined,

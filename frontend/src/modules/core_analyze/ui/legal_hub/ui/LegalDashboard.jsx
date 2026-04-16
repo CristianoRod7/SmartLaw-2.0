@@ -412,8 +412,8 @@ const Consultant = ({ onBack, onAnalyze }) => {
 
 [현재 HTML 양식 (절대 구조를 바꾸지 마세요)]
 ${documentContent}]`;
-
-      const res = await axios.post('`${API_BASE_URL}/api/v1/chat/draft', {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const res = await axios.post(`${API_BASE_URL}/api/v1/chat/draft`, {
         document_type: selectedDoc.title,
         message: input + hiddenSystemPrompt, 
         history: currentHistory

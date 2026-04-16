@@ -27,9 +27,10 @@ const Analysis = ({ onBack, onComplete }) => {
 
     try {
       setStatusMsg("AI 엔진이 독소조항을 정밀 스캔 중입니다. (약 10~20초 소요)");
-      const res = await axios.post('${API_BASE_URL}/api/v1/analyze/contract', formData, {
-          cancelToken: source.token
-      });
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const res = await axios.post(`${API_BASE_URL}/api/v1/analyze/contract`, formData, {
+      cancelToken: source.token
+        });
       
       clearTimeout(timeoutId);
       

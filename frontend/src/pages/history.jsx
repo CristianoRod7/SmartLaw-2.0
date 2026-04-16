@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FileText, ChevronRight, Calendar, Star, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 const History = ({ setView, setResult }) => {
     const [history, setHistory] = useState([]);
@@ -10,7 +12,7 @@ const History = ({ setView, setResult }) => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await axios.get('${API_BASE_URL}/api/v1/analyze/history');
+                const res = await axios.get(`${API_BASE_URL}/api/v1/analyze/history/${id}`);
                 setHistory(res.data);
             } catch (err) { console.error("기록 로드 실패"); } 
             finally { setLoading(false); }
