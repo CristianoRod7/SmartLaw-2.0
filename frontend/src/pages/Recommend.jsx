@@ -44,7 +44,7 @@ const Recommend = () => {
   const fetchLegalUpdates = async () => {
     setUpdating(true);
     try {
-      const res = await axios.get('`${API_BASE_URL}/api/v1/legal/news', {
+      const res = await axios.get('${API_BASE_URL}/api/v1/legal/news', {
         params: {
           query: searchTerm.trim() || undefined,
           days: dateFilter
