@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../../../../../config/api';
 import { 
     Send, Loader2, User, ShieldCheck, FileText, Download, ArrowLeft, 
     Gavel, Scale, Sparkles, BookOpen, AlertCircle, Library, Printer, 
@@ -412,8 +413,7 @@ const Consultant = ({ onBack, onAnalyze }) => {
 
 [현재 HTML 양식 (절대 구조를 바꾸지 마세요)]
 ${documentContent}]`;
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-      const res = await axios.post(`${API_BASE_URL}/api/v1/chat/draft`, {
+      const res = await axios.post(apiUrl('/api/v1/chat/draft'), {
         document_type: selectedDoc.title,
         message: input + hiddenSystemPrompt, 
         history: currentHistory
@@ -456,7 +456,7 @@ ${documentContent}]`;
           return;
       }
 
-      const docMatch = aiResponse.match(/\`\`\`(?:html|markdown)?\n([\s\S]*?)\`\`\`/i);
+      const docMatch = aiResponse.match(/```(?:html|markdown)?\n([\s\S]*?)```/i);
       
       if (docMatch || aiResponse.length > 250) {
           let newDocText = docMatch ? docMatch[1] : aiResponse;
