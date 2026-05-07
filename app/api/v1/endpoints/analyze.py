@@ -102,3 +102,63 @@ async def simulate_smartfarm(
     except Exception as e:
         print(f"❌ 시뮬레이터 에러: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/simulate-it")
+async def simulate_it_outsourcing(
+    project_type: str = Form(...),
+    contract_amount: str = Form(...),
+    paid_amount: str = Form("0"),
+    milestone_structure: str = Form("계약금/중도금/잔금"),
+    requirement_change_level: str = Form("medium"),
+    ip_transfer_timing: str = Form("after_final_payment"),
+    maintenance_scope: str = Form("bugfix_only"),
+    delay_penalty: str = Form("standard"),
+    termination_settlement: str = Form("has_settlement"),
+    server_cost_owner: str = Form("client"),
+    handles_personal_data: str = Form("no"),
+    open_source_policy: str = Form("allowed_with_notice"),
+    file: UploadFile | None = File(None),
+):
+    try:
+        print("🔥 IT 외주 시뮬레이터 시작")
+
+        contract_text = "계약서 파일이 첨부되지 않았습니다."
+        if file:
+            contents = await file.read()
+            contract_text = await document_service.process_file(contents, file.filename)
+
+            if not contract_text.strip():
+                raise HTTPException(status_code=400, detail="텍스트 없음")
+
+        simulation_result = await ai_service.simulate_it_outsourcing_risk(
+            contract_text=contract_text,
+            project_type=project_type,
+            contract_amount=contract_amount,
+            paid_amount=paid_amount,
+            milestone_structure=milestone_structure,
+            requirement_change_level=requirement_change_level,
+            ip_transfer_timing=ip_transfer_timing,
+            maintenance_scope=maintenance_scope,
+            delay_penalty=delay_penalty,
+            termination_settlement=termination_settlement,
+            server_cost_owner=server_cost_owner,
+            handles_personal_data=handles_personal_data,
+            open_source_policy=open_source_policy,
+        )
+
+        if isinstance(simulation_result, dict) and simulation_result.get("error"):
+            raise HTTPException(status_code=503, detail=simulation_result["error"])
+
+        return {
+            "status": "success",
+            "message": "IT 외주 시뮬레이션 완료",
+            "data": simulation_result,
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ IT 외주 시뮬레이터 에러: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

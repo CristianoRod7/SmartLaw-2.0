@@ -11,12 +11,15 @@ import SmartFarmDashboard from './modules/core_analyze/ui/farm_hub/ui/SmartFarmD
 import ITDashboard from './modules/core_analyze/ui/it_hub/ui/ITDashboard';
 import Recommend from './pages/Recommend';
 import SimulatorResultView from "./modules/smartfarm_simulator/SimulatorResultView";
+import ITOutsourcingSimulator from "./modules/it_outsourcing_simulator/Simulator";
+import ITSimulatorResultView from "./modules/it_outsourcing_simulator/SimulatorResultView";
 const MAX_FREE_TOKENS = 100000;
 
 const App = () => {
   const [view, setView] = useState('home');
   const [reportData, setReportData] = useState(null);
   const [simData, setSimData] = useState(null);
+  const [itSimData, setItSimData] = useState(null);
   const [usedTokens, setUsedTokens] = useState(0);
   const [selectedAnalysisType, setSelectedAnalysisType] = useState('스마트팜 구축 계약');
 
@@ -45,6 +48,7 @@ const App = () => {
     setView('home');
     setReportData(null);
     setSimData(null);
+    setItSimData(null);
   };
 
   const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
@@ -104,6 +108,9 @@ const App = () => {
                 setSelectedAnalysisType(type);
                 setView('analysis');
               }}
+              onNavigateToSimulator={() => {
+                setView('it-simulator');
+              }}
             />
           )}
 
@@ -135,6 +142,17 @@ const App = () => {
             />
           )}
 
+          {view === 'it-simulator' && (
+            <ITOutsourcingSimulator
+              key="it-simulator"
+              onBack={() => setView('it')}
+              onComplete={(data) => {
+                setItSimData(data);
+                setView('it-sim-result');
+              }}
+            />
+          )}
+
           {view === 'recommend' && (
             <Recommend
               key="recommend"
@@ -160,6 +178,17 @@ const App = () => {
                 }}
               />
             )}
+
+          {view === 'it-sim-result' && itSimData && (
+            <ITSimulatorResultView
+              key="it-sim-result"
+              data={itSimData}
+              onReset={() => {
+                setView('it-simulator');
+                setItSimData(null);
+              }}
+            />
+          )}
         </AnimatePresence>
       </div>
     </div>
