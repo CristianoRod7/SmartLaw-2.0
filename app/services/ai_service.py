@@ -83,16 +83,50 @@ class AIService:
 
         raise HTTPException(status_code=503, detail=f"AI 분석 실패: {str(last_error)}")
 
+    def _draft_document_chat_fallback(
+        self,
+        document_type: str,
+        user_message: str,
+        history: list[dict] | None = None
+    ) -> str:
+        """Return a deterministic local response when an AI key is not configured.
+
+        This keeps the chatbot endpoint usable in local/dev environments and makes
+        the missing-key cause visible in the UI instead of failing as a network
+        error.
+        """
+        recent_context = ""
+        if history:
+            recent_context = "\n".join(
+                f"- {msg.get('role', 'user')}: {msg.get('content', '')[:80]}"
+                for msg in history[-3:]
+            )
+
+        return f"""현재 서버에 GEMINI_API_KEY 또는 GOOGLE_API_KEY가 설정되어 있지 않아 AI 자동 작성은 임시 안내 모드로 동작 중입니다.
+
+문서 유형: {document_type or '법률 문서'}
+요청 내용: {user_message[:300]}
+
+로컬에서 실제 챗봇 답변을 받으려면 백엔드 실행 환경의 .env 파일에 GEMINI_API_KEY 또는 GOOGLE_API_KEY를 설정한 뒤 서버를 재시작하세요.
+
+지금 바로 진행하려면 아래 정보를 알려주세요.
+1. 문서에 들어갈 당사자 이름
+2. 날짜·금액·주소처럼 빈칸에 넣을 핵심 정보
+3. 원하는 문체(간단/정중/강경)
+
+최근 대화 요약:
+{recent_context or '- 이전 대화 없음'}"""
+
     async def draft_document_chat(
         self,
         document_type: str,
         user_message: str,
         history: list[dict] | None = None
     ) -> str:
-        if not self.client:
-            raise HTTPException(status_code=503, detail="Gemini API 키가 설정되지 않았습니다.")
-
         history = history or []
+
+        if not self.client:
+            return self._draft_document_chat_fallback(document_type, user_message, history)
 
         history_text = "\n".join(
             [f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in history]

@@ -39,6 +39,11 @@ async def analyze_contract(
         if isinstance(analysis_result, dict) and analysis_result.get("error"):
             raise HTTPException(status_code=503, detail=analysis_result["error"])
 
+        if isinstance(analysis_result, dict):
+            analysis_result.setdefault("contract_text", contract_text)
+            analysis_result.setdefault("document_type", document_type)
+            analysis_result.setdefault("industry", industry)
+
         return {
             "status": "success",
             "data": analysis_result

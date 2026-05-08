@@ -459,8 +459,8 @@ ${documentContent}]`;
 
       const docMatch = aiResponse.match(/```(?:html|markdown)?\n([\s\S]*?)```/i);
       
-      if (docMatch || aiResponse.length > 250) {
-          let newDocText = docMatch ? docMatch[1] : aiResponse;
+      if (docMatch) {
+          let newDocText = docMatch[1];
           const formattedDoc = newDocText.replace(/\n/g, '<br/>');
           
           setDocumentContent(`
@@ -478,7 +478,11 @@ ${documentContent}]`;
       }
     } catch (error) {
       console.error("AI 서버 통신 에러:", error);
-      setMessages(prev => [...prev, { role: 'model', content: "서버 통신 중 오류가 발생했습니다." }]);
+      const detail = error?.response?.data?.detail || error?.response?.data?.message || error?.message || "알 수 없는 오류";
+      setMessages(prev => [...prev, {
+        role: 'model',
+        content: `서버 통신 중 오류가 발생했습니다.\n\n원인: ${detail}`
+      }]);
     } finally {
       setIsTyping(false);
     }
