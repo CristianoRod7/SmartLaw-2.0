@@ -6,6 +6,9 @@ import {
   FileText, ArrowLeft, Download, Loader2, ShieldAlert, 
   MapPin, Scale, CheckCircle, AlertTriangle, Info, ShieldCheck
 } from 'lucide-react';
+import ReverseRiskPanel from '../../../features/reverseRisk/ReverseRiskPanel';
+
+const MotionDiv = motion.div;
 
 const ReportView = ({ data, onReset }) => {
     const reportRef = useRef(null);
@@ -88,7 +91,7 @@ const ReportView = ({ data, onReset }) => {
 };
 
     return (
-        <motion.div 
+        <MotionDiv 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           className="w-full pb-20 font-sans"
@@ -192,6 +195,11 @@ const ReportView = ({ data, onReset }) => {
     )}
   </div>
 )}
+                <ReverseRiskPanel
+                  contractText={data.contract_text || data.contractText || ''}
+                  apiAnalysisResult={data}
+                />
+
                 {/* 2. 섹션별 상세 분석 내역 */}
                 <div className="space-y-12">
                     {data.sections && data.sections.map((section, idx) => (
@@ -243,7 +251,7 @@ const ReportView = ({ data, onReset }) => {
                     ))}
                 </div>
             </div>
-        </motion.div>
+        </MotionDiv>
     );
 };
 
