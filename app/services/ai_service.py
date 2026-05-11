@@ -83,16 +83,50 @@ class AIService:
 
         raise HTTPException(status_code=503, detail=f"AI 분석 실패: {str(last_error)}")
 
+    def _draft_document_chat_fallback(
+        self,
+        document_type: str,
+        user_message: str,
+        history: list[dict] | None = None
+    ) -> str:
+        """Return a deterministic local response when an AI key is not configured.
+
+        This keeps the chatbot endpoint usable in local/dev environments and makes
+        the missing-key cause visible in the UI instead of failing as a network
+        error.
+        """
+        recent_context = ""
+        if history:
+            recent_context = "\n".join(
+                f"- {msg.get('role', 'user')}: {msg.get('content', '')[:80]}"
+                for msg in history[-3:]
+            )
+
+        return f"""현재 서버에 GEMINI_API_KEY 또는 GOOGLE_API_KEY가 설정되어 있지 않아 AI 자동 작성은 임시 안내 모드로 동작 중입니다.
+
+문서 유형: {document_type or '법률 문서'}
+요청 내용: {user_message[:300]}
+
+로컬에서 실제 챗봇 답변을 받으려면 백엔드 실행 환경의 .env 파일에 GEMINI_API_KEY 또는 GOOGLE_API_KEY를 설정한 뒤 서버를 재시작하세요.
+
+지금 바로 진행하려면 아래 정보를 알려주세요.
+1. 문서에 들어갈 당사자 이름
+2. 날짜·금액·주소처럼 빈칸에 넣을 핵심 정보
+3. 원하는 문체(간단/정중/강경)
+
+최근 대화 요약:
+{recent_context or '- 이전 대화 없음'}"""
+
     async def draft_document_chat(
         self,
         document_type: str,
         user_message: str,
         history: list[dict] | None = None
     ) -> str:
-        if not self.client:
-            raise HTTPException(status_code=503, detail="Gemini API 키가 설정되지 않았습니다.")
-
         history = history or []
+
+        if not self.client:
+            return self._draft_document_chat_fallback(document_type, user_message, history)
 
         history_text = "\n".join(
             [f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in history]
@@ -243,6 +277,99 @@ class AIService:
 {{
   "score": 0,
   "summary": "현재 상태 요약",
+  "future_risk": {{
+    "6_months": [
+      {{
+        "issue": "문제명",
+        "probability": "낮음/중간/높음",
+        "impact": "예상 피해",
+        "reason": "원인"
+      }}
+    ],
+    "1_year": [
+      {{
+        "issue": "문제명",
+        "probability": "낮음/중간/높음",
+        "impact": "예상 피해",
+        "reason": "원인"
+      }}
+    ]
+  }},
+  "actions": [
+    "조치 1",
+    "조치 2",
+    "조치 3"
+  ]
+}}
+"""
+        return await self._generate_json(prompt)
+
+
+    async def simulate_it_outsourcing_risk(
+        self,
+        contract_text: str,
+        project_type: str,
+        contract_amount: str,
+        paid_amount: str,
+        milestone_structure: str,
+        requirement_change_level: str,
+        ip_transfer_timing: str,
+        maintenance_scope: str,
+        delay_penalty: str,
+        termination_settlement: str,
+        server_cost_owner: str,
+        handles_personal_data: str,
+        open_source_policy: str,
+    ) -> dict:
+        prompt = f"""
+너는 IT 외주 개발 계약, 프리랜서 용역, 소프트웨어 유지보수 계약의 리스크를 사전 진단하는 컨설턴트다.
+아래 입력값과 계약서 내용을 바탕으로 발주자/수급자 모두에게 발생할 수 있는 6개월·1년 리스크를 분석해.
+
+[입력 데이터]
+- 프로젝트 유형: {project_type}
+- 계약 금액: {contract_amount}
+- 이미 지급된 금액: {paid_amount}
+- 마일스톤 구조: {milestone_structure}
+- 요구사항 변경 위험도: {requirement_change_level}
+- IP/소스코드 이전 시점: {ip_transfer_timing}
+- 유지보수 범위: {maintenance_scope}
+- 지체상금 수준: {delay_penalty}
+- 해지 시 기성고 정산 조항: {termination_settlement}
+- 서버/호스팅/외부 API 비용 부담: {server_cost_owner}
+- 개인정보 처리 여부: {handles_personal_data}
+- 오픈소스 정책: {open_source_policy}
+
+[계약서 내용]
+{contract_text}
+
+[분석 카테고리]
+1. 대금 지급 / 미수금
+2. 검수 / 납품 기준
+3. 추가 개발 / 요구사항 변경
+4. 지식재산권 / 소스코드
+5. 유지보수 / 하자보수
+6. 지체상금 / 일정 지연
+7. 계약 해지 / 기성고 정산
+8. 서버 / 호스팅 / 외부 API 비용
+9. 개인정보 / 보안 책임
+10. 오픈소스 라이선스
+
+각 카테고리는 Safe, Warning, Danger 중 하나로 판정해.
+
+[출력 JSON 형식]
+{{
+  "score": 0,
+  "summary": "전체 IT 외주 리스크 요약 2~3문장",
+  "risk_cards": [
+    {{
+      "category": "대금 지급 / 미수금",
+      "status": "Safe/Warning/Danger",
+      "title": "진단 제목",
+      "desc": "구체적 위험 설명",
+      "clause_hint": "확인해야 할 조항",
+      "fix": "수정 제안"
+    }}
+  ],
   "future_risk": {{
     "6_months": [
       {{
