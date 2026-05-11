@@ -1,7 +1,8 @@
 import axios from "axios";
+import { apiUrl } from "../../../config/api";
 
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api/v1/analyze`,
+  baseURL: apiUrl('/api/v1/analyze'),
 });
 
 function getIndustryFromDocumentType(documentType) {
@@ -14,18 +15,39 @@ function getIndustryFromDocumentType(documentType) {
     return "smartfarm";
   }
 
-  if (documentType?.includes("부동산")) return "real_estate";
-  if (documentType?.includes("프리랜서")) return "freelancer";
+  if (documentType?.includes("농지")) return "smartfarm";
+  if (documentType?.includes("부동산") || documentType?.includes("전세") || documentType?.includes("월세")) {
+    return "real_estate";
+  }
+  if (
+    documentType?.includes("프리랜서") ||
+    documentType?.includes("용역") ||
+    documentType?.includes("외주") ||
+    documentType?.includes("비밀유지") ||
+    documentType?.includes("NDA") ||
+    documentType?.includes("유지보수") ||
+    documentType?.includes("소프트웨어")
+  ) {
+    return "it";
+  }
 
-  return "smartfarm";
+  return "general";
 }
 
 export const analyzeApi = {
-  uploadContract: (file, documentType = "스마트팜 구축 계약") => {
+  uploadContract: (file, industry = "general", documentType) => {
+    const calledWithDocumentTypeOnly = documentType === undefined && industry !== "general";
+    const resolvedDocumentType = calledWithDocumentTypeOnly
+      ? industry
+      : (documentType || "일반 계약서");
+    const resolvedIndustry = calledWithDocumentTypeOnly
+      ? getIndustryFromDocumentType(resolvedDocumentType)
+      : (industry && industry !== "undefined" ? industry : getIndustryFromDocumentType(resolvedDocumentType));
+
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("industry", getIndustryFromDocumentType(documentType));
-    formData.append("document_type", documentType);
+    formData.append("industry", resolvedIndustry);
+    formData.append("document_type", resolvedDocumentType);
 
     return api.post("/contract", formData, {
       headers: {
