@@ -13,6 +13,7 @@ import {
   Newspaper,
   SearchCheck,
 } from 'lucide-react';
+import { getAnalysisHistory } from '../utils/analysisHistory';
 
 const MotionDiv = motion.div;
 
@@ -166,6 +167,8 @@ const PolicyIssueCard = ({ onNavigate }) => (
 );
 
 const Home = ({ onNavigate, onStartRiskConsult }) => {
+  const historyCount = getAnalysisHistory().length;
+
   // 대시보드 메뉴 아이템 정의 (스마트팜을 가장 먼저 배치)
   const menuItems = useMemo(() => [
     {
@@ -200,8 +203,9 @@ const Home = ({ onNavigate, onStartRiskConsult }) => {
       color: 'bg-slate-100 text-slate-700',
       active: true,
       badge: 'HISTORY',
+      meta: `저장된 리포트 ${historyCount}개`,
     },
-  ], []);
+  ], [historyCount]);
 
   return (
     <MotionDiv
@@ -239,6 +243,7 @@ const Home = ({ onNavigate, onStartRiskConsult }) => {
                 <ArrowUpRight size={20} className={`shrink-0 transition-colors ${item.active ? 'text-slate-300 group-hover:text-emerald-600' : 'text-slate-300'}`} />
               </div>
               <p className="break-keep text-sm font-bold leading-relaxed text-slate-500">{item.desc}</p>
+              {item.meta && <p className="text-xs font-black text-emerald-600">{item.meta}</p>}
             </div>
             {item.badge && (
               <span className="absolute right-8 top-6 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">

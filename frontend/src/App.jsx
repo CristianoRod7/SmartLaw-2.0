@@ -12,6 +12,12 @@ import ITDashboard from './modules/core_analyze/ui/it_hub/ui/ITDashboard';
 import Recommend from './pages/Recommend';
 import AiRiskConsult from './pages/AiRiskConsult';
 import AnalysisHistory from './pages/AnalysisHistory';
+import {
+  buildAnalysisHistoryRecord,
+  getAnalysisHistoryRecord,
+  saveAnalysisHistoryRecord,
+  toReportData,
+} from './utils/analysisHistory';
 import SimulatorResultView from "./modules/smartfarm_simulator/SimulatorResultView";
 import ITOutsourcingSimulator from "./modules/it_outsourcing_simulator/Simulator";
 import ITSimulatorResultView from "./modules/it_outsourcing_simulator/SimulatorResultView";
@@ -92,6 +98,7 @@ const App = () => {
   const [usedTokens, setUsedTokens] = useState(0);
   const [selectedAnalysisType, setSelectedAnalysisType] = useState('스마트팜 구축 계약');
   const [riskConsultPrompt, setRiskConsultPrompt] = useState('');
+  const [historyReportId, setHistoryReportId] = useState(null);
 
   useEffect(() => {
     const syncTokens = () => {
@@ -105,15 +112,14 @@ const App = () => {
   }, []);
 
   const handleAnalysisComplete = (data) => {
-    saveRecentAnalysis(data, selectedAnalysisType);
-    setReportData(data);
+    const record = saveAnalysisHistoryRecord(buildAnalysisHistoryRecord(data, selectedAnalysisType));
+    setReportData(toReportData(record));
     setView('report');
   };
 
-  const handleOpenRecentReport = (item) => {
-    if (!item?.reportData) return;
-    setReportData(item.reportData);
-    setView('report');
+  const handleOpenHistoryRecord = (id) => {
+    setHistoryReportId(id);
+    setView('history-report');
   };
 
   const handleStartRiskConsult = (prompt = '') => {
@@ -137,9 +143,11 @@ const App = () => {
     setSimData(null);
     setItSimData(null);
     setRiskConsultPrompt('');
+    setHistoryReportId(null);
   };
 
   const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
+  const restoredHistoryRecord = view === 'history-report' ? getAnalysisHistoryRecord(historyReportId) : null;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
@@ -175,7 +183,6 @@ const App = () => {
               key="home"
               onNavigate={setView}
               onStartRiskConsult={handleStartRiskConsult}
-              onOpenRecentReport={handleOpenRecentReport}
             />
           )}
 
@@ -267,8 +274,30 @@ const App = () => {
             <AnalysisHistory
               key="analysis-history"
               onBack={handleGoHome}
-              onOpenReport={handleOpenRecentReport}
+              onOpenReport={handleOpenHistoryRecord}
             />
+          )}
+
+          {view === 'history-report' && restoredHistoryRecord && (
+            <ReportView
+              key={`history-report-${historyReportId}`}
+              data={toReportData(restoredHistoryRecord)}
+              onReset={() => setView('analysis-history')}
+            />
+          )}
+
+          {view === 'history-report' && !restoredHistoryRecord && (
+            <div className="rounded-[3rem] border border-slate-200 bg-white px-6 py-24 text-center shadow-sm">
+              <h3 className="break-keep text-2xl font-black text-slate-950">분석 기록을 찾을 수 없습니다</h3>
+              <p className="mt-3 break-keep text-sm font-semibold text-slate-500">저장된 localStorage 기록이 삭제되었거나 올바르지 않은 ID입니다.</p>
+              <button
+                type="button"
+                onClick={() => setView('analysis-history')}
+                className="mt-7 rounded-2xl bg-slate-950 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-emerald-600"
+              >
+                히스토리로 돌아가기
+              </button>
+            </div>
           )}
 
           {view === 'report' && reportData && (
