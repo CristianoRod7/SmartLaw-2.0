@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../config/api';
 import {
   Zap,
   RefreshCcw,
@@ -10,17 +11,17 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const categoryKeywords = {
   "스마트팜": ["스마트팜", "시설원예", "온실"],
   "보조금": ["보조금", "지원금", "환수"],
   "농지/임대차": ["농지", "임대차", "전대", "임대", "임차"],
   "노동": ["노동", "임금", "근로", "퇴직금", "해고", "최저임금", "수당", "고용"],
   "주거": ["주거", "전세", "월세", "보증금", "주택", "아파트"],
+  "IT/개발외주": ["IT", "개발", "외주", "프리랜서", "소프트웨어", "유지보수", "NDA", "비밀유지", "소스코드"],
   "일반": ["법률", "개정", "판결", "법원", "헌법", "국회", "법안", "변호사", "재판"]
 };
 
-const categories = ["전체", "스마트팜", "보조금", "농지/임대차", "노동", "주거", "일반"];
+const categories = ["전체", "스마트팜", "보조금", "농지/임대차", "노동", "주거", "IT/개발외주", "일반"];
 const dateOptions = [7, 30, 90, 180, 365, 9999];
 
 const Recommend = () => {
@@ -45,7 +46,7 @@ const Recommend = () => {
     setUpdating(true);
     try {
       
-      const res = await axios.get(`${API_BASE_URL}/api/v1/legal/news`, {
+      const res = await axios.get(apiUrl('/api/v1/legal/news'), {
         params: {
           query: searchTerm.trim() || undefined,
           days: dateFilter

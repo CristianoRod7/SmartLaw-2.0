@@ -1,7 +1,10 @@
 import os
 import re
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
+from urllib.parse import quote_plus
+import xml.etree.ElementTree as ET
 
 import requests
 from dotenv import load_dotenv
@@ -46,6 +49,13 @@ CATEGORY_RULES = {
         "impact": "주거 계약 리스크 확인 필요",
         "tag": "LIVE",
     },
+    "IT/개발외주": {
+        "queries": ["IT 외주 계약", "소프트웨어 개발 계약", "프리랜서 용역 계약", "개발자 유지보수 계약", "NDA 비밀유지 계약"],
+        "keywords": ["IT", "개발", "외주", "프리랜서", "용역", "소프트웨어", "앱", "웹", "유지보수", "하자보수", "소스코드", "저작권", "검수", "NDA", "비밀유지"],
+        "exclude": ["게임", "연예", "스포츠"],
+        "impact": "외주 개발 계약의 대금·검수·IP 리스크 점검 필요",
+        "tag": "IT",
+    },
 }
 
 GENERIC_EXCLUDE = ["연예", "아이돌", "프로야구", "KBO", "축구", "e스포츠", "주가", "코인", "비트코인", "게임"]
@@ -63,7 +73,10 @@ def parse_pub_date(pub_date_raw: str):
     if not pub_date_raw:
         return None
     try:
-        return datetime.strptime(pub_date_raw, "%a, %d %b %Y %H:%M:%S %z")
+        parsed = parsedate_to_datetime(pub_date_raw)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed
     except Exception:
         return None
 
@@ -73,6 +86,7 @@ def fetch_naver_news(query: str, client_id: str, client_secret: str):
     headers = {
         "X-Naver-Client-Id": client_id,
         "X-Naver-Client-Secret": client_secret,
+        "User-Agent": "Mozilla/5.0 (compatible; NextLawCrawler/1.0)",
     }
     params = {
         "query": query,
@@ -81,10 +95,140 @@ def fetch_naver_news(query: str, client_id: str, client_secret: str):
         "sort": "date",
     }
 
-    response = requests.get(url, headers=headers, params=params, timeout=8)
-    print(f"📡 API 상태: {response.status_code} | 검색어: {query}")
-    data = response.json()
-    return data.get("items", [])
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=8)
+        print(f"📡 Naver API 상태: {response.status_code} | 검색어: {query}")
+        response.raise_for_status()
+
+        try:
+            data = response.json()
+        except ValueError as e:
+            print(f"❌ Naver JSON 파싱 실패 | query={query} | error={e}")
+            return []
+
+        if data.get("errorMessage"):
+            print(
+                "❌ Naver API 오류 "
+                f"| query={query} | code={data.get('errorCode')} | message={data.get('errorMessage')}"
+            )
+            return []
+
+        return data.get("items", [])
+
+    except requests.RequestException as e:
+        print(f"❌ Naver 뉴스 요청 실패 | query={query} | error={e}")
+        return []
+
+
+def fetch_google_news_rss(query: str):
+    encoded_query = quote_plus(f"{query} 법률 정책")
+    url = f"https://news.google.com/rss/search?q={encoded_query}&hl=ko&gl=KR&ceid=KR:ko"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; NextLawLocalCrawler/1.0)",
+    }
+
+    response = requests.get(url, headers=headers, timeout=8)
+    response.raise_for_status()
+
+    root = ET.fromstring(response.content)
+    items = []
+    for item in root.findall("./channel/item")[:10]:
+        title = item.findtext("title", default="")
+        summary = item.findtext("description", default="")
+        link = item.findtext("link", default="")
+        pub_date = item.findtext("pubDate", default="")
+        items.append({
+            "title": title,
+            "description": summary,
+            "originallink": link,
+            "link": link,
+            "pubDate": pub_date,
+        })
+
+    print(f"📡 Google RSS 수집: {len(items)}건 | 검색어: {query}")
+    return items
+
+
+def fallback_news_items(query: str | None = None):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    items = [
+        {
+            "id": "fallback-smartfarm",
+            "category": "스마트팜",
+            "tag": "SMART",
+            "title": "스마트팜 계약 점검 체크리스트",
+            "summary": "로컬 크롤링 연결이 실패해 기본 안내를 표시합니다. 구축 범위, 검수 기준, 하자보수, 보조금 환수 조항을 우선 확인하세요.",
+            "impact": "스마트팜 구축 및 운영 리스크 확인 필요",
+            "date": today,
+            "link": None,
+            "score": 0,
+        },
+        {
+            "id": "fallback-lease",
+            "category": "주거",
+            "tag": "LIVE",
+            "title": "임대차 계약 점검 체크리스트",
+            "summary": "보증금 반환, 확정일자, 수선 의무, 특약 조항을 확인하세요. 실제 최신 뉴스는 네트워크 또는 API 키 설정 후 다시 조회할 수 있습니다.",
+            "impact": "주거 계약 리스크 확인 필요",
+            "date": today,
+            "link": None,
+            "score": 0,
+        },
+        {
+            "id": "fallback-subsidy",
+            "category": "보조금",
+            "tag": "SMART",
+            "title": "보조금 환수 리스크 점검 체크리스트",
+            "summary": "지원사업 목적 외 사용, 의무 운영기간 위반, 증빙 누락은 환수 사유가 될 수 있으니 계약서와 사업지침을 함께 확인하세요.",
+            "impact": "지원금 환수 및 의무 불이행 리스크 확인 필요",
+            "date": today,
+            "link": None,
+            "score": 0,
+        },
+        {
+            "id": "fallback-labor",
+            "category": "노동",
+            "tag": "NEW",
+            "title": "근로계약·임금 조항 점검 체크리스트",
+            "summary": "근로시간, 휴게시간, 연장근로수당, 퇴직금, 해고 예고 조항이 근로기준법 취지에 맞는지 확인하세요.",
+            "impact": "노무 리스크 점검 필요",
+            "date": today,
+            "link": None,
+            "score": 0,
+        },
+        {
+            "id": "fallback-it-outsourcing",
+            "category": "IT/개발외주",
+            "tag": "IT",
+            "title": "IT 외주 계약 점검 체크리스트",
+            "summary": "대금 지급, 검수 기준, 추가 개발 범위, IP 이전 시점, 유지보수 책임, 오픈소스 라이선스 조항을 확인하세요.",
+            "impact": "외주 개발 계약의 대금·검수·IP 리스크 점검 필요",
+            "date": today,
+            "link": None,
+            "score": 0,
+        },
+    ]
+
+    if query:
+        query_text = query.lower()
+
+        def match_priority(item):
+            category = item["category"].lower()
+            title = item["title"].lower()
+            summary = item["summary"].lower()
+
+            if query_text in category:
+                return 0
+            if query_text in title:
+                return 1
+            if query_text in summary:
+                return 2
+            return 99
+
+        matched_items = [item for item in items if match_priority(item) < 99]
+        return sorted(matched_items, key=match_priority) or items
+
+    return items
 
 
 def score_article(title: str, summary: str, category: str):
@@ -136,33 +280,29 @@ def crawl_news(query: str = None, days: int = 180):
     client_id = os.getenv("NAVER_CLIENT_ID")
     client_secret = os.getenv("NAVER_CLIENT_SECRET")
 
-    if not client_id or not client_secret:
-        return [
-            {
-                "id": "mock-no-api-key",
-                "category": "시스템",
-                "tag": "INFO",
-                "title": "네이버 뉴스 API 키가 설정되지 않았습니다.",
-                "summary": "NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 환경변수를 확인해주세요.",
-                "impact": "API 인증 필요",
-                "date": "Today",
-                "link": None,
-                "score": 0,
-            }
-        ]
-
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     search_queries = build_search_queries(query)
 
     all_items = []
     for q in search_queries:
         try:
-            items = fetch_naver_news(q, client_id, client_secret)
+            if client_id and client_secret:
+                items = fetch_naver_news(q, client_id, client_secret)
+            else:
+                items = fetch_google_news_rss(q)
             all_items.extend(items)
         except Exception as e:
             print(f"❌ 개별 검색 실패 | query={q} | error={e}")
+            if client_id and client_secret:
+                try:
+                    all_items.extend(fetch_google_news_rss(q))
+                except Exception as rss_error:
+                    print(f"❌ RSS 대체 검색 실패 | query={q} | error={rss_error}")
 
-    print(f"📰 API 원본 뉴스 총합: {len(all_items)}")
+    print(f"📰 원본 뉴스 총합: {len(all_items)}")
+
+    if not all_items:
+        return fallback_news_items(query)
 
     results = []
     seen_links = set()
@@ -220,18 +360,6 @@ def crawl_news(query: str = None, days: int = 180):
     print(f"✅ 관련도 필터 후 최종 반환 뉴스 개수: {len(results)}")
 
     if not results:
-        return [
-            {
-                "id": "mock-1",
-                "category": "시스템",
-                "tag": "INFO",
-                "title": "해당 조건에 맞는 정책 데이터를 찾지 못했습니다.",
-                "summary": "검색어를 바꾸거나 기간 조건을 완화해 다시 시도해주세요.",
-                "impact": "검색 결과 없음",
-                "date": "Today",
-                "link": None,
-                "score": 0,
-            }
-        ]
+        return fallback_news_items(query)
 
     return results[:12]

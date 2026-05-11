@@ -1,143 +1,265 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Zap, Cpu, Leaf, Scale, BarChart3, 
-  ArrowUpRight, TrendingUp, ChevronRight, Sparkles 
+import {
+  Cpu,
+  Leaf,
+  Scale,
+  ArrowUpRight,
+  Sparkles,
+  History,
+  Bot,
+  SendHorizontal,
+  ShieldQuestion,
+  Newspaper,
+  SearchCheck,
 } from 'lucide-react';
+import { getAnalysisHistory } from '../utils/analysisHistory';
 
-const Home = ({ onNavigate }) => {
+const MotionDiv = motion.div;
+
+const CONSULTATION_CHIPS = [
+  '보조금 환수 위험',
+  '농지 임대차 검토',
+  '시공사 유지보수',
+  '계약 해지 조건',
+];
+
+const POLICY_CHIPS = [
+  '보조금 공고',
+  '농지 임대차',
+  '청년농 지원',
+];
+
+const AiRiskConsultBanner = ({ onStartConsult }) => (
+  <div className="group relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-xl shadow-slate-900/10 lg:col-span-2 lg:p-10">
+    <div className="relative z-10 grid gap-7 xl:grid-cols-[0.78fr_1.22fr] xl:items-stretch">
+      <div className="flex min-w-0 flex-col justify-between gap-6">
+        <div className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+            <Bot size={14} /> AI Risk Router
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-black text-emerald-300">AI 리스크 상담</p>
+            <h3 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">
+              계약 리스크, <br className="hidden sm:block" />먼저 물어보세요
+            </h3>
+            <p className="max-w-xl break-keep text-sm font-semibold leading-7 text-slate-300 lg:text-base lg:leading-7">
+              계약서가 불리한지, 어떤 분석을 먼저 해야 할지 AI가 검토 방향을 안내합니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">상담 전용 페이지에서 진행</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-white/75">
+            {['상황 입력', '리스크 요약', '추천 기능 이동'].map((label) => (
+              <span key={label} className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5">
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.1] p-4 shadow-2xl shadow-slate-950/20 backdrop-blur-md sm:p-5">
+        <div className="flex h-full flex-col justify-between rounded-[2rem] bg-white p-5 text-slate-950 shadow-xl shadow-slate-950/10 sm:p-6">
+          <div className="space-y-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Choose a topic</p>
+                <h4 className="mt-1 break-keep text-2xl font-black text-slate-950">상담 주제를 선택하거나 바로 시작하세요</h4>
+              </div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <ShieldQuestion size={21} />
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+              <p className="break-keep text-sm font-semibold leading-7 text-slate-500">
+                실제 상황 입력과 상담 결과 확인은 전용 페이지에서 이어집니다. 아래 주제를 고르면 선택된 상태로 상담을 시작합니다.
+              </p>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {CONSULTATION_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => onStartConsult?.(chip)}
+                    className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-left text-xs font-black text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-sm"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onStartConsult?.('')}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10"
+          >
+            AI 상담 시작하기
+            <SendHorizontal size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div className="pointer-events-none absolute right-[-8%] top-1/2 -translate-y-1/2 rotate-12 opacity-10 transition-transform duration-1000 group-hover:rotate-6">
+      <Bot size={420} />
+    </div>
+  </div>
+);
+
+const PolicyIssueCard = ({ onNavigate }) => (
+  <div className="flex min-h-[420px] flex-col justify-between rounded-[3.5rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/50">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Crawling Intelligence</p>
+          <h4 className="mt-1 break-keep text-2xl font-black tracking-tight text-slate-950">정책·이슈 확인</h4>
+        </div>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner shadow-emerald-100/60">
+          <Newspaper size={22} />
+        </div>
+      </div>
+
+      <p className="break-keep text-sm font-semibold leading-7 text-slate-500">
+        보조금, 농지 임대차, 스마트팜 구축 관련 정책·뉴스를 빠르게 확인합니다.
+      </p>
+
+      <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+            <SearchCheck size={19} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black text-slate-900">스마트팜 정책·뉴스 큐레이션</p>
+            <p className="mt-1 break-keep text-xs font-semibold leading-5 text-slate-500">크롤링 기반 정보 확인 진입점</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">주요 키워드</p>
+        <div className="flex flex-wrap gap-2">
+          {POLICY_CHIPS.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-black text-slate-600"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      onClick={() => onNavigate('recommend')}
+      className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-slate-950 hover:shadow-lg hover:shadow-slate-900/10"
+    >
+      정책·이슈 확인하기
+      <ArrowUpRight size={16} />
+    </button>
+  </div>
+);
+
+const Home = ({ onNavigate, onStartRiskConsult }) => {
+  const historyCount = getAnalysisHistory().length;
+
   // 대시보드 메뉴 아이템 정의 (스마트팜을 가장 먼저 배치)
-  const menuItems = [
-    { 
-      id: 'farm', 
-      title: "스마트팜 허브", 
-      desc: "농지법 검토 및 보조금 리스크 스캔", 
-      icon: <Leaf size={32} />, 
-      color: "bg-emerald-50 text-emerald-600", 
-      active: true 
+  const menuItems = useMemo(() => [
+    {
+      id: 'farm',
+      title: '스마트팜 허브',
+      desc: '농지법 검토 및 보조금 리스크 스캔',
+      icon: <Leaf size={32} />,
+      color: 'bg-emerald-50 text-emerald-600',
+      active: true,
     },
-    { 
-      id: 'it', 
-      title: "IT 외주 가디언", 
-      desc: "SOW 확정 및 IP 분쟁 방지", 
-      icon: <Cpu size={32} />, 
-      color: "bg-purple-50 text-purple-600", 
-      active: true 
+    {
+      id: 'it',
+      title: 'IT 외주 가디언',
+      desc: 'SOW 확정 및 IP 분쟁 방지',
+      icon: <Cpu size={32} />,
+      color: 'bg-purple-50 text-purple-600',
+      active: true,
     },
-    { 
-      id: 'legal', 
-      title: "법률 라이브러리", 
-      desc: "7대 필수 서류 양식 무상 제공", 
-      icon: <Scale size={32} />, 
-      color: "bg-blue-50 text-blue-600", 
-      active: true 
+    {
+      id: 'legal',
+      title: '법률 라이브러리',
+      desc: '7대 필수 서류 양식 무상 제공',
+      icon: <Scale size={32} />,
+      color: 'bg-blue-50 text-blue-600',
+      active: true,
     },
-    { 
-      id: 'biz', 
-      title: "비즈니스 지표", 
-      desc: "계약 리스크 통합 관리 대시보드", 
-      icon: <BarChart3 size={32} />, 
-      color: "bg-slate-50 text-slate-600", 
-      active: false 
-    }
-  ];
+    {
+      id: 'analysis-history',
+      title: '분석 히스토리',
+      desc: '이전 계약 분석 기록과 리포트 검색',
+      icon: <History size={32} />,
+      color: 'bg-slate-100 text-slate-700',
+      active: true,
+      badge: 'HISTORY',
+      meta: `저장된 리포트 ${historyCount}개`,
+    },
+  ], [historyCount]);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0 }} 
-      className="space-y-12 w-full max-w-[1600px] mx-auto"
+    <MotionDiv
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="mx-auto w-full max-w-[1600px] space-y-12"
     >
       {/* 🚀 상단 환영 섹션 */}
       <section className="space-y-4 px-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-black uppercase tracking-widest border border-emerald-100">
-              <Sparkles size={14} /> Smart Farm Priority Mode
-          </div>
-          <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
-              NextLaw Hub <br/>
-              <span className="text-slate-400">Safe Business Infrastructure.</span>
-          </h2>
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-emerald-600">
+          <Sparkles size={14} /> Smart Farm Priority Mode
+        </div>
+        <h2 className="text-5xl font-black leading-[1.1] tracking-tighter text-slate-900">
+          NextLaw Hub <br />
+          <span className="text-slate-400">Safe Business Infrastructure.</span>
+        </h2>
       </section>
 
       {/* 🚀 버티컬 모듈 카드 그리드 */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 px-2">
-          {menuItems.map((item) => (
-              <motion.div 
-                key={item.id} 
-                whileHover={{ y: -8, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} 
-                onClick={() => item.active && onNavigate(item.id)}
-                className={`group p-8 rounded-[3rem] border border-slate-200 bg-white cursor-pointer relative transition-all ${!item.active && 'opacity-60 cursor-not-allowed'}`}
-              >
-                  <div className={`w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform shadow-sm`}>
-                    {item.icon}
-                  </div>
-                  <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-black text-slate-900">{item.title}</h3>
-                        <ArrowUpRight size={20} className="text-slate-300 group-hover:text-emerald-600 transition-colors" />
-                      </div>
-                      <p className="text-slate-500 font-bold text-sm leading-relaxed break-keep">{item.desc}</p>
-                  </div>
-                  {!item.active && (
-                    <span className="absolute top-6 right-8 bg-amber-100 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Wait</span>
-                  )}
-              </motion.div>
-          ))}
+      <section className="grid grid-cols-1 gap-6 px-2 md:grid-cols-2 xl:grid-cols-4">
+        {menuItems.map((item) => (
+          <MotionDiv
+            key={item.id}
+            whileHover={{ y: -6, shadow: '0 18px 35px -28px rgb(15 23 42 / 0.45)' }}
+            onClick={() => item.active && onNavigate(item.id)}
+            className={`group relative rounded-[3rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/40 transition-all ${item.active ? 'cursor-pointer hover:border-emerald-100' : 'cursor-default'}`}
+          >
+            <div className={`mb-10 flex h-16 w-16 items-center justify-center rounded-2xl ${item.color} shadow-sm transition-transform group-hover:scale-105`}>
+              {item.icon}
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="break-keep text-xl font-black text-slate-900">{item.title}</h3>
+                <ArrowUpRight size={20} className={`shrink-0 transition-colors ${item.active ? 'text-slate-300 group-hover:text-emerald-600' : 'text-slate-300'}`} />
+              </div>
+              <p className="break-keep text-sm font-bold leading-relaxed text-slate-500">{item.desc}</p>
+              {item.meta && <p className="text-xs font-black text-emerald-600">{item.meta}</p>}
+            </div>
+            {item.badge && (
+              <span className="absolute right-8 top-6 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                {item.badge}
+              </span>
+            )}
+          </MotionDiv>
+        ))}
       </section>
 
-      {/* 🚀 하단 인사이트 섹션 (스마트팜 집중 노출) */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-2">
-          <div className="lg:col-span-2 bg-slate-900 rounded-[3.5rem] p-12 text-white relative overflow-hidden group">
-              <div className="relative z-10 space-y-6">
-                  <span className="text-emerald-400 font-black tracking-widest text-xs uppercase italic">Smart Farm Intelligence</span>
-                  <h3 className="text-4xl font-black leading-tight tracking-tighter italic">
-                    "스마트팜 관련 <br />
-                    <span className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-8">정책과 이슈</span>를 한눈에 확인하세요."
-                  </h3>
-                  <p className="text-slate-400 font-medium max-w-xl text-lg break-keep">
-                     보조금, 농지 임대차, 스마트팜 구축과 관련된 주요 내용을 쉽고 빠르게 확인할 수 있습니다.
-                  </p>
-                  <button 
-                    onClick={() => onNavigate('recommend')}
-                    className="px-8 py-4 bg-emerald-600 rounded-2xl font-black text-sm hover:bg-white hover:text-slate-900 transition-all shadow-lg shadow-emerald-900/20"
-                  >
-                    정책 확인하기
-                  </button>
-              </div>
-              <div className="absolute right-[-5%] top-1/2 -translate-y-1/2 opacity-10 rotate-12 pointer-events-none group-hover:rotate-0 transition-transform duration-1000">
-                <Leaf size={400} />
-              </div>
-          </div>
-
-          <div className="bg-white rounded-[3.5rem] p-10 border border-slate-200 flex flex-col justify-between shadow-sm">
-              <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-lg font-black text-slate-800 italic">Quick Connect</h4>
-                    <TrendingUp size={20} className="text-emerald-500" />
-                  </div>
-                  <div className="space-y-5">
-                      {[
-                        { name: '스마트팜 시공 분쟁 전문', tag: '농지법' },
-                        { name: 'IT 저작권 전문 변호사', tag: '하도급' },
-                        { name: '임금체불 전문 노무사', tag: '근로기준' }
-                      ].map((expert, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer group hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-100">
-                            <div className="flex flex-col">
-                                <span className="font-bold text-slate-700 group-hover:text-emerald-700">{expert.name}</span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase">{expert.tag}</span>
-                            </div>
-                            <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-600" />
-                          </div>
-                      ))}
-                  </div>
-              </div>
-              <button className="w-full py-4 bg-slate-100 rounded-2xl text-xs font-black text-slate-500 mt-8 hover:bg-slate-200 transition-colors tracking-widest uppercase">
-                Find All Vertical Experts
-              </button>
-          </div>
+      {/* 🚀 하단 인사이트 섹션 (AI 상담 메인 CTA + 스마트팜 정책·뉴스 크롤링 진입점 유지) */}
+      <section className="grid grid-cols-1 gap-8 px-2 lg:grid-cols-3">
+        <AiRiskConsultBanner onStartConsult={onStartRiskConsult} />
+        <PolicyIssueCard onNavigate={onNavigate} />
       </section>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
