@@ -5,6 +5,7 @@ import time
 from app.api.v1.endpoints.analyze import router as analyze_router
 from app.api.v1.endpoints.legal import router as legal_router
 from app.api.v1.endpoints.chat import router as chat_router
+from app.api.v1.endpoints.ai_risk_consult import router as ai_risk_consult_router
 
 
 
@@ -12,6 +13,7 @@ app = FastAPI(title="NextLaw 2.0 API")
 app.include_router(analyze_router, prefix="/api/v1/analyze", tags=["analyze"])
 app.include_router(legal_router, prefix="/api/v1/legal", tags=["legal"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
+app.include_router(ai_risk_consult_router, prefix="/api/ai-risk-consult", tags=["ai-risk-consult"])
 
 app.add_middleware(
     CORSMiddleware,

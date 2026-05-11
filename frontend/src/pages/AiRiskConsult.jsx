@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -8,11 +8,13 @@ import {
   FileSearch,
   Leaf,
   LibraryBig,
+  Loader2,
   Newspaper,
   SendHorizontal,
   ShieldAlert,
   Sparkles,
 } from 'lucide-react';
+import { aiRiskConsultApi } from '../api/aiRiskConsult';
 
 const MotionDiv = motion.div;
 
@@ -37,9 +39,9 @@ const keywordGroups = [
       '시공 완료 확인서와 검수 기준표를 별도 첨부하는 구성이 안전합니다.',
     ],
     recommendations: [
-      { label: '스마트팜 계약 스캔', view: 'farm', icon: Leaf },
-      { label: '계약 체크리스트', view: 'analysis', icon: ClipboardCheck, analysisType: '스마트팜 구축 계약' },
-      { label: '정책·이슈 확인', view: 'recommend', icon: Newspaper },
+      { label: '스마트팜 계약 스캔', route: '/smartfarm', icon: Leaf },
+      { label: '계약 체크리스트', route: '/analysis', icon: ClipboardCheck, analysisType: '스마트팜 구축 계약' },
+      { label: '정책·이슈 확인', route: '/policy', icon: Newspaper },
     ],
   },
   {
@@ -55,8 +57,8 @@ const keywordGroups = [
       '정책·뉴스 화면에서 최신 지원사업 공고와 변경사항을 확인하는 것을 권장합니다.',
     ],
     recommendations: [
-      { label: '스마트팜 허브', view: 'farm', icon: Leaf },
-      { label: '정책·이슈 확인', view: 'recommend', icon: Newspaper },
+      { label: '스마트팜 허브', route: '/smartfarm', icon: Leaf },
+      { label: '정책·이슈 확인', route: '/policy', icon: Newspaper },
     ],
   },
   {
@@ -72,8 +74,8 @@ const keywordGroups = [
       '농지 관련 문서와 표준 계약 양식을 함께 확인하는 흐름이 적합합니다.',
     ],
     recommendations: [
-      { label: '스마트팜 허브', view: 'farm', icon: Leaf },
-      { label: '법률 라이브러리', view: 'legal', icon: LibraryBig },
+      { label: '스마트팜 허브', route: '/smartfarm', icon: Leaf },
+      { label: '법률 라이브러리', route: '/legal', icon: LibraryBig },
     ],
   },
 ];
@@ -90,10 +92,29 @@ const defaultResult = {
     '정책이나 지원사업 조건과 연결된 계약이면 정책·이슈 확인도 함께 진행하는 것이 좋습니다.',
   ],
   recommendations: [
-    { label: '스마트팜 허브', view: 'farm', icon: Leaf },
-    { label: '계약 분석 시작', view: 'analysis', icon: FileSearch, analysisType: '스마트팜 구축 계약' },
-    { label: '정책·이슈 확인', view: 'recommend', icon: Newspaper },
+    { label: '스마트팜 허브', route: '/smartfarm', icon: Leaf },
+    { label: '계약 분석 시작', route: '/analysis', icon: FileSearch, analysisType: '스마트팜 구축 계약' },
+    { label: '정책·이슈 확인', route: '/policy', icon: Newspaper },
   ],
+};
+
+const routeToView = {
+  '/smartfarm': 'farm',
+  '/farm': 'farm',
+  '/policy': 'recommend',
+  '/recommend': 'recommend',
+  '/legal': 'legal',
+  '/it': 'it',
+};
+
+const iconByRoute = {
+  '/smartfarm': Leaf,
+  '/farm': Leaf,
+  '/policy': Newspaper,
+  '/recommend': Newspaper,
+  '/legal': LibraryBig,
+  '/it': ClipboardCheck,
+  '/analysis': FileSearch,
 };
 
 const buildConsultResult = (prompt) => {
@@ -102,30 +123,79 @@ const buildConsultResult = (prompt) => {
   return matched || defaultResult;
 };
 
+const toFallbackResult = (prompt, source = 'fallback') => {
+  const fallback = buildConsultResult(prompt);
+  return {
+    answer: 'AI API 응답을 받지 못해 로컬 키워드 기반 fallback 상담 결과를 표시합니다.',
+    detectedRisks: fallback.risks.map((risk) => ({ title: risk, level: '주의', reason: risk })),
+    checkpoints: fallback.nextSteps,
+    recommendedActions: fallback.recommendations.map((item) => ({
+      label: item.label,
+      description: item.label,
+      route: item.route || '/analysis',
+      analysisType: item.analysisType,
+    })),
+    followUpQuestions: CONSULTATION_CHIPS,
+    source,
+  };
+};
+
+const normalizeResult = (payload) => ({
+  answer: payload?.answer || '상담 결과를 불러왔습니다.',
+  detectedRisks: Array.isArray(payload?.detectedRisks) ? payload.detectedRisks : [],
+  checkpoints: Array.isArray(payload?.checkpoints) ? payload.checkpoints : [],
+  recommendedActions: Array.isArray(payload?.recommendedActions) ? payload.recommendedActions : [],
+  followUpQuestions: Array.isArray(payload?.followUpQuestions) ? payload.followUpQuestions : [],
+  source: payload?.source || 'openai',
+});
+
 const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) => {
   const [input, setInput] = useState(initialPrompt);
-  const [submittedPrompt, setSubmittedPrompt] = useState(initialPrompt);
+  const [submittedPrompt, setSubmittedPrompt] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const result = useMemo(() => buildConsultResult(submittedPrompt), [submittedPrompt]);
-  const hasResult = submittedPrompt.trim().length > 0;
+  const hasResult = Boolean(result);
 
-  const handleSubmit = () => {
-    const nextPrompt = input.trim();
+  const requestConsult = async (prompt) => {
+    const nextPrompt = prompt.trim();
     if (!nextPrompt) return;
+
     setSubmittedPrompt(nextPrompt);
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const response = await aiRiskConsultApi.consult(nextPrompt, {
+        service: 'smartfarm',
+        source: initialPrompt ? 'main_or_consult_page' : 'consult_page',
+      });
+      setResult(normalizeResult(response.data));
+    } catch (error) {
+      console.error('AI 리스크 상담 API 호출 실패:', error);
+      setErrorMessage('AI API 응답을 받지 못해 로컬 fallback 결과를 표시합니다.');
+      setResult(toFallbackResult(nextPrompt, 'frontend_fallback'));
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSubmit = () => requestConsult(input);
 
   const handleChipClick = (chip) => {
     setInput(chip);
-    setSubmittedPrompt(chip);
+    requestConsult(chip);
   };
 
   const handleRecommendationClick = (recommendation) => {
-    if (recommendation.analysisType) {
-      onAnalyze?.(recommendation.analysisType);
+    if (recommendation.analysisType || recommendation.route === '/analysis') {
+      onAnalyze?.(recommendation.analysisType || '스마트팜 구축 계약');
       return;
     }
-    onNavigate?.(recommendation.view);
+
+    const view = routeToView[recommendation.route];
+    if (view) onNavigate?.(view);
   };
 
   return (
@@ -153,14 +223,14 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
             <div className="space-y-3">
               <h2 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">AI 리스크 상담</h2>
               <p className="max-w-xl break-keep text-base font-semibold leading-8 text-slate-300">
-                계약 상황을 입력하면 키워드 기반 mock 상담 결과와 다음에 사용하면 좋은 분석 기능을 추천합니다.
+                계약 상황을 입력하면 백엔드 AI 상담 API가 리스크 유형, 확인 포인트, 추천 기능을 정리합니다.
               </p>
             </div>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
               <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-200">상담 흐름</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {['상황 입력', '리스크 요약', '추천 기능 이동'].map((step) => (
+                {['상황 입력', 'AI 리스크 요약', '추천 기능 이동'].map((step) => (
                   <div key={step} className="rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-bold text-white/80">
                     {step}
                   </div>
@@ -213,10 +283,11 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
           <button
             type="button"
             onClick={handleSubmit}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10"
+            disabled={loading || !input.trim()}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
-            상담 결과 보기
-            <SendHorizontal size={16} />
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={16} />}
+            {loading ? '검토 방향을 정리하는 중입니다' : '상담 결과 보기'}
           </button>
         </div>
       </section>
@@ -224,62 +295,108 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
       <section className="rounded-[3.5rem] border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50 lg:p-8">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Mock consultation result</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">
+              {result?.source?.startsWith('fallback') || result?.source === 'frontend_fallback' ? 'Fallback consultation result' : 'AI consultation result'}
+            </p>
             <h3 className="mt-1 break-keep text-2xl font-black text-slate-950">상담 결과 영역</h3>
           </div>
-          {hasResult && <span className="break-keep text-xs font-bold text-slate-400">입력: {submittedPrompt}</span>}
+          {submittedPrompt && <span className="break-keep text-xs font-bold text-slate-400">입력: {submittedPrompt}</span>}
         </div>
 
-        {hasResult ? (
+        {loading && (
           <div className="grid gap-5 lg:grid-cols-[1fr_0.75fr]">
-            <div className="rounded-[2rem] border border-slate-200 bg-slate-50/80 p-5">
-              <h4 className="break-keep text-lg font-black text-slate-950">{result.title}</h4>
-              <div className="mt-5 space-y-3">
-                {result.risks.map((risk) => (
-                  <div key={risk} className="flex gap-3 rounded-2xl bg-white p-4 shadow-sm shadow-slate-200/50">
-                    <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
-                    <p className="break-keep text-sm font-semibold leading-6 text-slate-600">{risk}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            <div className="h-64 animate-pulse rounded-[2rem] bg-slate-100" />
             <div className="space-y-5">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
-                <h4 className="text-sm font-black text-slate-950">검토 방향</h4>
-                <ul className="mt-4 space-y-3">
-                  {result.nextSteps.map((step) => (
-                    <li key={step} className="break-keep text-sm font-semibold leading-6 text-slate-500">• {step}</li>
+              <div className="h-32 animate-pulse rounded-[2rem] bg-slate-100" />
+              <div className="h-44 animate-pulse rounded-[2rem] bg-emerald-50" />
+            </div>
+          </div>
+        )}
+
+        {!loading && hasResult ? (
+          <div className="space-y-5">
+            {errorMessage && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
+                {errorMessage}
+              </div>
+            )}
+            <div className="grid gap-5 lg:grid-cols-[1fr_0.75fr]">
+              <div className="rounded-[2rem] border border-slate-200 bg-slate-50/80 p-5">
+                <h4 className="break-keep text-lg font-black text-slate-950">AI 검토 요약</h4>
+                <p className="mt-4 break-keep text-sm font-semibold leading-7 text-slate-600">{result.answer}</p>
+                <div className="mt-5 space-y-3">
+                  {result.detectedRisks.map((risk) => (
+                    <div key={`${risk.title}-${risk.reason}`} className="flex gap-3 rounded-2xl bg-white p-4 shadow-sm shadow-slate-200/50">
+                      <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="break-keep text-sm font-black text-slate-800">{risk.title} <span className="text-xs text-emerald-600">· {risk.level}</span></p>
+                        <p className="mt-1 break-keep text-sm font-semibold leading-6 text-slate-500">{risk.reason}</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
 
-              <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/60 p-5">
-                <h4 className="text-sm font-black text-slate-950">추천 분석 기능</h4>
-                <div className="mt-4 space-y-2">
-                  {result.recommendations.map((recommendation) => {
-                    const Icon = recommendation.icon;
-                    return (
-                      <button
-                        key={recommendation.label}
-                        type="button"
-                        onClick={() => handleRecommendationClick(recommendation)}
-                        className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-black text-slate-700 shadow-sm shadow-emerald-100/50 transition hover:-translate-y-0.5 hover:text-emerald-700"
-                      >
-                        <span className="flex items-center gap-3"><Icon size={17} /> {recommendation.label}</span>
-                        <span className="text-emerald-600">→</span>
-                      </button>
-                    );
-                  })}
+              <div className="space-y-5">
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
+                  <h4 className="text-sm font-black text-slate-950">확인 포인트</h4>
+                  <ul className="mt-4 space-y-3">
+                    {result.checkpoints.map((step) => (
+                      <li key={step} className="break-keep text-sm font-semibold leading-6 text-slate-500">• {step}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/60 p-5">
+                  <h4 className="text-sm font-black text-slate-950">추천 분석 기능</h4>
+                  <div className="mt-4 space-y-2">
+                    {result.recommendedActions.map((recommendation) => {
+                      const Icon = iconByRoute[recommendation.route] || FileSearch;
+                      return (
+                        <button
+                          key={`${recommendation.label}-${recommendation.route}`}
+                          type="button"
+                          onClick={() => handleRecommendationClick(recommendation)}
+                          className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-sm font-black text-slate-700 shadow-sm shadow-emerald-100/50 transition hover:-translate-y-0.5 hover:text-emerald-700"
+                        >
+                          <span className="flex items-center gap-3"><Icon size={17} /> {recommendation.label}</span>
+                          <span className="text-emerald-600">→</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {result.followUpQuestions.length > 0 && (
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
+                <h4 className="text-sm font-black text-slate-950">후속 질문</h4>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {result.followUpQuestions.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => {
+                        setInput(question);
+                        requestConsult(question);
+                      }}
+                      className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-black text-slate-600 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
+        ) : null}
+
+        {!loading && !hasResult && (
           <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50/80 px-6 py-12 text-center">
             <Sparkles size={28} className="mx-auto text-slate-400" />
             <p className="mt-4 break-keep text-sm font-bold leading-7 text-slate-500">
-              상담할 계약 상황을 입력하거나 추천 질문을 선택하면 mock 리스크 상담 결과가 표시됩니다.
+              상담할 계약 상황을 입력하거나 추천 질문을 선택하면 AI 리스크 상담 결과가 표시됩니다.
             </p>
           </div>
         )}
