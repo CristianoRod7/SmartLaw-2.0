@@ -1,10 +1,8 @@
-const LOCAL_API_BASE_URL = "http://localhost:8000";
-
 const normalizeApiBaseUrl = (value) => {
   const normalized = String(value || "").trim().replace(/\/$/, "");
 
   if (!normalized || normalized === "undefined" || normalized === "null") {
-    return LOCAL_API_BASE_URL;
+    return "";
   }
 
   return normalized;

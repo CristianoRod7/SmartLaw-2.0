@@ -139,21 +139,12 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
               <ShieldCheck size={20} className="shrink-0" />
               <span className="truncate">IT 계약 스캔하기</span>
             </button>
-
             <button
               onClick={onNavigateToSimulator}
               className="flex min-w-0 items-center justify-center gap-3 whitespace-nowrap rounded-2xl bg-white px-6 py-4 text-base font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-purple-100"
             >
               <SlidersHorizontal size={20} className="shrink-0" />
               <span className="truncate">IT 외주 리스크 시뮬레이터</span>
-            </button>
-
-            <button
-              onClick={() => onNavigateToAnalysis('비밀유지 계약서(NDA)')}
-              className="flex min-w-0 items-center justify-center gap-3 whitespace-nowrap rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-base font-black text-white transition hover:bg-white/15 sm:col-span-2"
-            >
-              <LockKeyhole size={20} className="shrink-0" />
-              <span className="truncate">NDA 점검</span>
             </button>
           </div>
         </div>
@@ -165,23 +156,17 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
             <span className="font-bold">검토 가능한 문서</span>
             <FileCode2 size={20} />
           </div>
-          <div className="text-4xl font-black text-slate-900">
-            5<span className="ml-1 text-xl font-medium text-slate-400">종</span>
-          </div>
+          <div className="text-4xl font-black text-slate-900">5<span className="ml-1 text-xl font-medium text-slate-400">종</span></div>
           <p className="mt-3 text-xs font-bold text-slate-400">외주·프리랜서·NDA·유지보수</p>
         </div>
-
         <div className="min-w-0 rounded-2xl border border-amber-100 bg-amber-50 p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between text-amber-600">
             <span className="font-bold">주요 분쟁 포인트</span>
             <AlertCircle size={20} />
           </div>
-          <div className="text-4xl font-black text-amber-600">
-            10<span className="ml-1 text-xl font-medium text-amber-400">개</span>
-          </div>
+          <div className="text-4xl font-black text-amber-600">10<span className="ml-1 text-xl font-medium text-amber-400">개</span></div>
           <p className="mt-3 text-xs font-bold text-amber-500/80">대금/SOW/IP/보안/오픈소스</p>
         </div>
-
         <div className="relative min-w-0 overflow-hidden rounded-2xl bg-purple-600 p-6 text-white shadow-lg md:col-span-2 xl:col-span-1">
           <div className="mb-4 flex items-center justify-between text-purple-200">
             <span className="font-bold">권장 대금 구조</span>
@@ -223,18 +208,11 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
                     {item.icon}
                   </div>
                   <div className="min-w-0">
-                    <div className="break-keep font-bold leading-snug text-slate-900">
-                      {item.title}
-                    </div>
-                    <div className="mt-1 break-keep text-sm leading-6 text-slate-500">
-                      {item.desc}
-                    </div>
+                    <div className="break-keep font-bold leading-snug text-slate-900">{item.title}</div>
+                    <div className="mt-1 break-keep text-sm leading-6 text-slate-500">{item.desc}</div>
                   </div>
                 </div>
-                <ChevronRight
-                  className="shrink-0 text-slate-400 transition group-hover:text-purple-600"
-                  size={18}
-                />
+                <ChevronRight className="shrink-0 text-slate-400 transition group-hover:text-purple-600" size={18} />
               </button>
             ))}
           </div>
@@ -247,9 +225,7 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
             </div>
             <div>
               <h3 className="break-keep text-xl font-black leading-snug text-slate-900">외주 분쟁 알림</h3>
-              <p className="break-keep text-sm font-medium leading-6 text-slate-500">
-                계약서에서 먼저 확인할 위험 조항
-              </p>
+              <p className="break-keep text-sm font-medium leading-6 text-slate-500">계약서에서 먼저 확인할 위험 조항</p>
             </div>
           </div>
 
@@ -257,32 +233,20 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
             {riskCards.map((risk) => (
               <div key={risk.title} className="min-w-0 rounded-2xl border border-slate-100 bg-slate-50 p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="rounded-xl bg-white p-2 text-purple-600 shadow-sm">
-                    {risk.icon}
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                      risk.level === '위험'
-                        ? 'bg-red-100 text-red-600'
-                        : 'bg-amber-100 text-amber-600'
-                    }`}
-                  >
+                  <div className="rounded-xl bg-white p-2 text-purple-600 shadow-sm">{risk.icon}</div>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-black ${risk.level === '위험' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
                     {risk.level}
                   </span>
                 </div>
                 <h4 className="break-keep font-black leading-snug text-slate-900">{risk.title}</h4>
-                <p className="mt-2 break-keep text-sm font-medium leading-6 text-slate-500">
-                  {risk.desc}
-                </p>
+                <p className="mt-2 break-keep text-sm font-medium leading-6 text-slate-500">{risk.desc}</p>
                 <button
                   onClick={() => onNavigateToAnalysis('IT 외주 계약서')}
                   className="mt-5 w-full whitespace-nowrap rounded-2xl bg-white px-4 py-3 text-xs font-black text-purple-700 shadow-sm transition hover:bg-purple-50"
                 >
                   관련 조항 확인하기
                 </button>
-                <p className="mt-3 break-keep text-[11px] font-bold leading-5 text-slate-400">
-                  {risk.clause}
-                </p>
+                <p className="mt-3 break-keep text-[11px] font-bold leading-5 text-slate-400">{risk.clause}</p>
               </div>
             ))}
           </div>
@@ -300,14 +264,11 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
               <p className="break-keep text-sm font-medium leading-6 text-slate-500">서명 전 최소 확인 항목</p>
             </div>
           </div>
-
           <div className="space-y-3">
             {checklist.map((item) => (
               <div key={item} className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
                 <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-500" size={18} />
-                <span className="break-keep text-sm font-bold leading-6 text-slate-700">
-                  {item}
-                </span>
+                <span className="break-keep text-sm font-bold leading-6 text-slate-700">{item}</span>
               </div>
             ))}
           </div>
@@ -320,18 +281,12 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
             </div>
             <div>
               <h3 className="break-keep text-xl font-black leading-snug">권장 마일스톤</h3>
-              <p className="break-keep text-sm font-medium leading-6 text-slate-400">
-                대금 회수와 검수 지연을 줄이는 구조
-              </p>
+              <p className="break-keep text-sm font-medium leading-6 text-slate-400">대금 회수와 검수 지연을 줄이는 구조</p>
             </div>
           </div>
-
           <div className="space-y-4">
             {milestoneItems.map((item, index) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5"
-              >
+              <div key={item.label} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-500 text-sm font-black">
                   {index + 1}
                 </div>
@@ -340,9 +295,7 @@ const ITDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) =>
                     <span className="break-keep font-black leading-snug">{item.label}</span>
                     <span className="text-2xl font-black text-purple-300">{item.value}</span>
                   </div>
-                  <p className="mt-1 break-keep text-sm font-medium leading-6 text-slate-400">
-                    {item.desc}
-                  </p>
+                  <p className="mt-1 break-keep text-sm font-medium leading-6 text-slate-400">{item.desc}</p>
                 </div>
               </div>
             ))}

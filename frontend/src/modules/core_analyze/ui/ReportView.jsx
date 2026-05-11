@@ -1,8 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, FileText, RotateCcw } from "lucide-react";
-
 import AnalysisResultTabs from "./AnalysisResultTabs";
+
+const MotionDiv = motion.div;
 
 const getContractText = (data) => {
   if (!data) return "";
@@ -22,7 +23,7 @@ const getContractText = (data) => {
     data.original_text ||
     data.fullText ||
     data.full_text ||
-    JSON.stringify(data, null, 2)
+    ""
   );
 };
 
@@ -35,6 +36,7 @@ const getDocumentTitle = (data) => {
     data.filename ||
     data.documentName ||
     data.document_name ||
+    data.document_type ||
     "계약서 분석 리포트"
   );
 };
@@ -43,8 +45,24 @@ const ReportView = ({ data, onReset }) => {
   const contractText = getContractText(data);
   const title = getDocumentTitle(data);
 
+  if (!data) {
+    return <div className="py-40 text-center font-black italic text-slate-400">데이터를 불러오는 중입니다...</div>;
+  }
+
+  if (data.error) {
+    return (
+      <div className="mt-10 w-full rounded-[3rem] border border-red-200 bg-white py-40 text-center">
+        <h3 className="mb-2 text-2xl font-black text-red-500">분석 중 오류가 발생했습니다.</h3>
+        <p className="mb-6 text-slate-500">{data.error}</p>
+        <button onClick={onReset} className="rounded-xl bg-slate-900 px-6 py-2 font-bold text-white">
+          다시 시도하기
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <motion.div
+    <MotionDiv
       key="report-view"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -60,19 +78,14 @@ const ReportView = ({ data, onReset }) => {
           >
             <ArrowLeft size={20} />
           </button>
-
           <div>
             <div className="mb-1 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-blue-600">
               <FileText size={14} />
               Analysis Report
             </div>
-
-            <h2 className="break-keep text-3xl font-black tracking-tight text-slate-950">
-              {title}
-            </h2>
+            <h2 className="break-keep text-3xl font-black tracking-tight text-slate-950">{title}</h2>
           </div>
         </div>
-
         <button
           type="button"
           onClick={onReset}
@@ -83,11 +96,8 @@ const ReportView = ({ data, onReset }) => {
         </button>
       </div>
 
-      <AnalysisResultTabs
-        contractText={contractText}
-        apiAnalysisResult={data}
-      />
-    </motion.div>
+      <AnalysisResultTabs contractText={contractText} apiAnalysisResult={data} />
+    </MotionDiv>
   );
 };
 
