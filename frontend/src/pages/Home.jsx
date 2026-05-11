@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Cpu,
@@ -29,81 +29,92 @@ const POLICY_CHIPS = [
   '청년농 지원',
 ];
 
-const AiRiskConsultBanner = () => (
-  <div className="group relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 text-white shadow-xl shadow-slate-900/10 lg:col-span-2 lg:p-12">
-    <div className="relative z-10 grid gap-8 xl:grid-cols-[0.95fr_1.05fr] xl:items-stretch">
-      <div className="flex min-w-0 flex-col justify-between gap-10">
-        <div className="space-y-6">
+const AiRiskConsultBanner = ({ onStartConsult }) => {
+  const [consultInput, setConsultInput] = useState('');
+  const startConsult = (prompt = consultInput) => onStartConsult?.(prompt);
+
+  return (
+  <div className="group relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-xl shadow-slate-900/10 lg:col-span-2 lg:p-10">
+    <div className="relative z-10 grid gap-7 xl:grid-cols-[0.72fr_1.28fr] xl:items-stretch">
+      <div className="flex min-w-0 flex-col justify-between gap-6">
+        <div className="space-y-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
             <Bot size={14} /> AI Risk Router
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm font-black text-emerald-300">AI 리스크 상담</p>
             <h3 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">
               계약 리스크, <br className="hidden sm:block" />먼저 물어보세요
             </h3>
-            <p className="max-w-xl break-keep text-base font-semibold leading-7 text-slate-300 lg:text-lg lg:leading-8">
-              계약 상황을 입력하면 필요한 분석 기능과 검토 방향을 추천합니다. 독소조항 탐지, 수정 가이드, 분석 리포트까지 이어지는 첫 단계입니다.
+            <p className="max-w-lg break-keep text-sm font-semibold leading-7 text-slate-300 lg:text-base lg:leading-7">
+              계약 상황을 입력하면 필요한 분석 기능과 검토 방향을 추천하는 AI 상담 진입점입니다.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            ['01', '상황 입력'],
-            ['02', '검토 방향 추천'],
-            ['03', '분석 기능 연결'],
-          ].map(([step, label]) => (
-            <div key={step} className="rounded-3xl border border-white/10 bg-white/[0.06] px-4 py-3 backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">{step}</p>
-              <p className="mt-1 break-keep text-sm font-bold text-white/80">{label}</p>
-            </div>
-          ))}
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">How it routes</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-white/75">
+            {['상황 입력', '검토 방향 추천', '분석 화면 이동'].map((label) => (
+              <span key={label} className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5">
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="rounded-[2.25rem] border border-white/10 bg-white/[0.08] p-4 shadow-2xl shadow-slate-950/20 backdrop-blur-md sm:p-5">
-        <div className="rounded-[1.75rem] bg-white p-4 text-slate-950 shadow-xl shadow-slate-950/10 sm:p-5">
-          <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.1] p-4 shadow-2xl shadow-slate-950/20 backdrop-blur-md sm:p-5">
+        <div className="flex h-full flex-col rounded-[2rem] bg-white p-5 text-slate-950 shadow-xl shadow-slate-950/10 sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Start here</p>
-              <h4 className="mt-1 break-keep text-lg font-black text-slate-950">어떤 분석이 필요할까요?</h4>
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Start consultation</p>
+              <h4 className="mt-1 break-keep text-xl font-black text-slate-950">상황을 입력하고 상담 화면으로 이동하세요</h4>
             </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <ShieldQuestion size={20} />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <ShieldQuestion size={21} />
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white">
+          <div className="flex flex-1 flex-col rounded-[28px] border border-slate-200 bg-slate-50/80 p-4 transition-colors focus-within:border-emerald-200 focus-within:bg-white">
             <textarea
-              rows={4}
+              value={consultInput}
+              onChange={(event) => setConsultInput(event.target.value)}
+              rows={6}
               placeholder="예: 시공사가 하자보수 책임을 계약서에 명확히 적지 않았어요."
-              className="min-h-[122px] w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-7 text-slate-800 outline-none placeholder:break-keep placeholder:text-slate-400"
+              className="min-h-[190px] flex-1 resize-none bg-transparent px-2 py-2 text-base font-semibold leading-7 text-slate-800 outline-none placeholder:break-keep placeholder:text-slate-400"
             />
-          </div>
 
-          <div className="mt-5 space-y-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">추천 질문</p>
-            <div className="flex flex-wrap gap-2">
-              {CONSULTATION_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="rounded-full border border-emerald-100 bg-emerald-50/80 px-3.5 py-2 text-xs font-black text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-sm"
-                >
-                  {chip}
-                </button>
-              ))}
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">추천 질문</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {CONSULTATION_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => startConsult(chip)}
+                    className="rounded-full border border-emerald-100 bg-emerald-50/80 px-3.5 py-2 text-xs font-black text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-sm"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10"
-          >
-            상담 시작
-            <SendHorizontal size={16} />
-          </button>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => startConsult()}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10"
+            >
+              상담 시작
+              <SendHorizontal size={16} />
+            </button>
+            <p className="break-keep text-xs font-bold leading-5 text-slate-400 sm:max-w-[180px]">
+              입력 내용은 다음 단계의 AI 상담 화면으로 이어지는 진입 정보입니다.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -112,7 +123,8 @@ const AiRiskConsultBanner = () => (
       <Bot size={420} />
     </div>
   </div>
-);
+  );
+};
 
 const PolicyIssueCard = ({ onNavigate }) => (
   <div className="flex min-h-[420px] flex-col justify-between rounded-[3.5rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/50">
@@ -169,7 +181,7 @@ const PolicyIssueCard = ({ onNavigate }) => (
   </div>
 );
 
-const Home = ({ onNavigate }) => {
+const Home = ({ onNavigate, onStartRiskConsult }) => {
   // 대시보드 메뉴 아이템 정의 (스마트팜을 가장 먼저 배치)
   const menuItems = useMemo(() => [
     {
@@ -197,12 +209,12 @@ const Home = ({ onNavigate }) => {
       active: true,
     },
     {
-      id: 'history',
+      id: 'analysis-history',
       title: '분석 히스토리',
       desc: '이전 계약 분석 기록과 리포트 검색',
       icon: <History size={32} />,
       color: 'bg-slate-100 text-slate-700',
-      active: false,
+      active: true,
       badge: 'HISTORY',
     },
   ], []);
@@ -255,7 +267,7 @@ const Home = ({ onNavigate }) => {
 
       {/* 🚀 하단 인사이트 섹션 (AI 상담 메인 CTA + 스마트팜 정책·뉴스 크롤링 진입점 유지) */}
       <section className="grid grid-cols-1 gap-8 px-2 lg:grid-cols-3">
-        <AiRiskConsultBanner />
+        <AiRiskConsultBanner onStartConsult={onStartRiskConsult} />
         <PolicyIssueCard onNavigate={onNavigate} />
       </section>
     </MotionDiv>

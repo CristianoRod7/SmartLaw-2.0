@@ -10,6 +10,8 @@ import LegalDashboard from './modules/core_analyze/ui/legal_hub/ui/LegalDashboar
 import SmartFarmDashboard from './modules/core_analyze/ui/farm_hub/ui/SmartFarmDashboard';
 import ITDashboard from './modules/core_analyze/ui/it_hub/ui/ITDashboard';
 import Recommend from './pages/Recommend';
+import AiRiskConsult from './pages/AiRiskConsult';
+import AnalysisHistory from './pages/AnalysisHistory';
 import SimulatorResultView from "./modules/smartfarm_simulator/SimulatorResultView";
 import ITOutsourcingSimulator from "./modules/it_outsourcing_simulator/Simulator";
 import ITSimulatorResultView from "./modules/it_outsourcing_simulator/SimulatorResultView";
@@ -89,6 +91,7 @@ const App = () => {
   const [itSimData, setItSimData] = useState(null);
   const [usedTokens, setUsedTokens] = useState(0);
   const [selectedAnalysisType, setSelectedAnalysisType] = useState('스마트팜 구축 계약');
+  const [riskConsultPrompt, setRiskConsultPrompt] = useState('');
 
   useEffect(() => {
     const syncTokens = () => {
@@ -113,6 +116,16 @@ const App = () => {
     setView('report');
   };
 
+  const handleStartRiskConsult = (prompt = '') => {
+    setRiskConsultPrompt(prompt);
+    setView('risk-consult');
+  };
+
+  const handleNavigateToAnalysis = (type = '스마트팜 구축 계약') => {
+    setSelectedAnalysisType(type);
+    setView('analysis');
+  };
+
   const handleSimulationComplete = (data) => {
     setSimData(data);
     setView('sim-result');
@@ -123,6 +136,7 @@ const App = () => {
     setReportData(null);
     setSimData(null);
     setItSimData(null);
+    setRiskConsultPrompt('');
   };
 
   const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
@@ -157,7 +171,12 @@ const App = () => {
 
         <AnimatePresence mode="wait">
           {view === 'home' && (
-            <Home key="home" onNavigate={setView} onOpenRecentReport={handleOpenRecentReport} />
+            <Home
+              key="home"
+              onNavigate={setView}
+              onStartRiskConsult={handleStartRiskConsult}
+              onOpenRecentReport={handleOpenRecentReport}
+            />
           )}
 
           {view === 'farm' && (
@@ -231,6 +250,24 @@ const App = () => {
             <Recommend
               key="recommend"
               onBack={handleGoHome}
+            />
+          )}
+
+          {view === 'risk-consult' && (
+            <AiRiskConsult
+              key="risk-consult"
+              initialPrompt={riskConsultPrompt}
+              onBack={handleGoHome}
+              onNavigate={setView}
+              onAnalyze={handleNavigateToAnalysis}
+            />
+          )}
+
+          {view === 'analysis-history' && (
+            <AnalysisHistory
+              key="analysis-history"
+              onBack={handleGoHome}
+              onOpenReport={handleOpenRecentReport}
             />
           )}
 
