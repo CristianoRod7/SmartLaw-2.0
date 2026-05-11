@@ -136,7 +136,8 @@ const toFallbackResult = (prompt, source = 'fallback') => {
       analysisType: item.analysisType,
     })),
     followUpQuestions: CONSULTATION_CHIPS,
-    source,
+    source: 'fallback',
+    fallbackReason: source === 'frontend_fallback' ? 'Frontend API request failed' : source,
   };
 };
 
@@ -147,6 +148,7 @@ const normalizeResult = (payload) => ({
   recommendedActions: Array.isArray(payload?.recommendedActions) ? payload.recommendedActions : [],
   followUpQuestions: Array.isArray(payload?.followUpQuestions) ? payload.followUpQuestions : [],
   source: payload?.source || 'openai',
+  fallbackReason: payload?.fallbackReason || null,
 });
 
 const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) => {
@@ -171,11 +173,18 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
         service: 'smartfarm',
         source: initialPrompt ? 'main_or_consult_page' : 'consult_page',
       });
-      setResult(normalizeResult(response.data));
+      const normalized = normalizeResult(response.data);
+      console.log('AI consult source:', normalized.source, normalized.fallbackReason || '');
+      setResult(normalized);
+      if (normalized.source === 'fallback') {
+        setErrorMessage(normalized.fallbackReason || 'AI API fallback 응답을 표시합니다.');
+      }
     } catch (error) {
       console.error('AI 리스크 상담 API 호출 실패:', error);
+      const fallback = toFallbackResult(nextPrompt, 'frontend_fallback');
+      console.log('AI consult source:', fallback.source, fallback.fallbackReason || '');
       setErrorMessage('AI API 응답을 받지 못해 로컬 fallback 결과를 표시합니다.');
-      setResult(toFallbackResult(nextPrompt, 'frontend_fallback'));
+      setResult(fallback);
     } finally {
       setLoading(false);
     }
@@ -296,7 +305,7 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">
-              {result?.source?.startsWith('fallback') || result?.source === 'frontend_fallback' ? 'Fallback consultation result' : 'AI consultation result'}
+              {result?.source === 'fallback' ? 'Fallback consultation result' : 'AI consultation result'}
             </p>
             <h3 className="mt-1 break-keep text-2xl font-black text-slate-950">상담 결과 영역</h3>
           </div>
@@ -315,9 +324,9 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
 
         {!loading && hasResult ? (
           <div className="space-y-5">
-            {errorMessage && (
+            {(errorMessage || result.fallbackReason) && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
-                {errorMessage}
+                {errorMessage || result.fallbackReason}
               </div>
             )}
             <div className="grid gap-5 lg:grid-cols-[1fr_0.75fr]">

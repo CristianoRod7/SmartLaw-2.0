@@ -25,4 +25,5 @@ class AiRiskConsultResponse(BaseModel):
     checkpoints: List[str] = Field(default_factory=list)
     recommendedActions: List[RecommendedAction] = Field(default_factory=list)
     followUpQuestions: List[str] = Field(default_factory=list)
-    source: Optional[str] = "openai"
+    source: str = "openai"
+    fallbackReason: Optional[str] = None

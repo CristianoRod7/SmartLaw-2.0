@@ -51,7 +51,7 @@ RESPONSE_SCHEMA: Dict[str, Any] = {
 }
 
 
-def _fallback_response(message: str, source: str = "fallback") -> AiRiskConsultResponse:
+def _fallback_response(message: str, fallback_reason: str) -> AiRiskConsultResponse:
     normalized = message.replace(" ", "").lower()
 
     if any(keyword in normalized for keyword in ["하자보수", "시공", "유지보수"]):
@@ -67,7 +67,8 @@ def _fallback_response(message: str, source: str = "fallback") -> AiRiskConsultR
                 {"label": "정책·이슈 확인", "description": "관련 정책과 지원사업 이슈를 확인합니다.", "route": "/policy"},
             ],
             followUpQuestions=["계약서에 하자보수 기간이 몇 개월로 적혀 있나요?", "무상 수리와 유상 수리 기준이 구분되어 있나요?"],
-            source=source,
+            source="fallback",
+            fallbackReason=fallback_reason,
         )
 
     if any(keyword in normalized for keyword in ["보조금", "환수", "지원금"]):
@@ -80,7 +81,8 @@ def _fallback_response(message: str, source: str = "fallback") -> AiRiskConsultR
                 {"label": "정책·이슈 확인", "description": "지원사업 공고와 정책 변경사항을 확인합니다.", "route": "/policy"},
             ],
             followUpQuestions=["지원금 교부 조건 문서가 계약서에 첨부되어 있나요?", "계약 해지 시 보조금 반환 책임은 누구에게 있나요?"],
-            source=source,
+            source="fallback",
+            fallbackReason=fallback_reason,
         )
 
     if any(keyword in normalized for keyword in ["농지", "임대차", "농업목적"]):
@@ -93,7 +95,8 @@ def _fallback_response(message: str, source: str = "fallback") -> AiRiskConsultR
                 {"label": "법률 라이브러리", "description": "관련 계약 문서와 양식을 확인합니다.", "route": "/legal"},
             ],
             followUpQuestions=["임대차 계약서에 스마트팜 시설 설치가 허용되어 있나요?", "계약 종료 시 원상회복 범위가 적혀 있나요?"],
-            source=source,
+            source="fallback",
+            fallbackReason=fallback_reason,
         )
 
     return AiRiskConsultResponse(
@@ -105,7 +108,8 @@ def _fallback_response(message: str, source: str = "fallback") -> AiRiskConsultR
             {"label": "스마트팜 허브", "description": "스마트팜 관련 계약 유형을 확인합니다.", "route": "/smartfarm"},
         ],
         followUpQuestions=["문제가 된 조항 문구를 그대로 입력해 주실 수 있나요?", "계약 유형이 시공, 임대차, 외주 중 어디에 가까운가요?"],
-        source=source,
+        source="fallback",
+        fallbackReason=fallback_reason,
     )
 
 
@@ -168,11 +172,12 @@ class AiRiskConsultService:
                 checkpoints=["문제가 되는 조항 또는 상황을 1~2문장으로 입력", "계약 유형과 상대방 역할을 함께 입력"],
                 recommendedActions=[{"label": "계약 분석 시작", "description": "계약서를 업로드해 리스크를 확인합니다.", "route": "/analysis"}],
                 followUpQuestions=["어떤 계약서에서 문제가 발생했나요?", "상대방이 부담해야 하는 책임은 무엇인가요?"],
-                source="validation",
+                source="fallback",
+                fallbackReason="Input is too short",
             )
 
         if not self.api_key:
-            return _fallback_response(cleaned_message, source="fallback:no_openai_key")
+            return _fallback_response(cleaned_message, fallback_reason="OPENAI_API_KEY is missing")
 
         try:
             payload = await asyncio.to_thread(self._request_openai, cleaned_message, context)
@@ -181,7 +186,7 @@ class AiRiskConsultService:
             return AiRiskConsultResponse(**parsed, source="openai")
         except Exception as exc:
             print(f"❌ OpenAI AI 리스크 상담 실패: {repr(exc)}")
-            return _fallback_response(cleaned_message, source="fallback:openai_error")
+            return _fallback_response(cleaned_message, fallback_reason=f"OpenAI request failed or response parsing failed: {type(exc).__name__}")
 
 
 ai_risk_consult_service = AiRiskConsultService()
