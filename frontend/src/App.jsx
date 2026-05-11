@@ -312,6 +312,10 @@ const App = () => {
               <SimulatorResultView
                 key="sim-result"
                 data={simData}
+                onBack={() => {
+                  setView('farm');
+                  setSimData(null);
+                }}
                 onReset={() => {
                   setView('simulator');
                   setSimData(null);
