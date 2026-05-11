@@ -23,6 +23,73 @@ import ITOutsourcingSimulator from "./modules/it_outsourcing_simulator/Simulator
 import ITSimulatorResultView from "./modules/it_outsourcing_simulator/SimulatorResultView";
 const MAX_FREE_TOKENS = 100000;
 
+const RECENT_ANALYSES_STORAGE_KEY = 'smartlaw_recent_analysis_results';
+
+const safeNumber = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+
+const getReportTitle = (data) => (
+  data?.title ||
+  data?.fileName ||
+  data?.filename ||
+  data?.documentName ||
+  data?.document_name ||
+  data?.document_type ||
+  '계약서 분석 리포트'
+);
+
+const getReportSummary = (data) => {
+  const candidates = [
+    data?.summary,
+    data?.overview,
+    data?.description,
+  ];
+
+  return candidates.find((value) => typeof value === 'string' && value.trim()) ||
+    'AI 분석 결과와 역방향 리스크 체크 결과를 다시 확인할 수 있습니다.';
+};
+
+const getReportScore = (data) => safeNumber(
+  data?.riskScore ?? data?.risk_score ?? data?.score ?? data?.summary?.averageScore ?? data?.summaryScore,
+  0,
+);
+
+const countByRiskLevel = (data, matcher) => {
+  const items = [
+    ...(Array.isArray(data?.toxicClauses) ? data.toxicClauses : []),
+    ...(Array.isArray(data?.sections) ? data.sections.flatMap((section) => Array.isArray(section.items) ? section.items : []) : []),
+  ];
+
+  return items.filter((item) => matcher(String(item?.riskLevel || item?.status || item?.severity || item?.level || '').toLowerCase())).length;
+};
+
+const buildRecentAnalysisItem = (data, fallbackType) => ({
+  id: data?.id || `recent-${Date.now()}`,
+  title: getReportTitle(data),
+  contractType: data?.document_type || data?.documentType || fallbackType || '계약서 분석',
+  analyzedAt: new Date().toISOString().slice(0, 10),
+  riskScore: getReportScore(data),
+  dangerCount: safeNumber(data?.dangerCount, countByRiskLevel(data, (level) => level.includes('danger') || level.includes('high') || level.includes('위험'))),
+  warningCount: safeNumber(data?.warningCount, countByRiskLevel(data, (level) => level.includes('warning') || level.includes('medium') || level.includes('주의'))),
+  summary: getReportSummary(data),
+  reportData: data,
+});
+
+const saveRecentAnalysis = (data, fallbackType) => {
+  try {
+    const nextItem = buildRecentAnalysisItem(data, fallbackType);
+    const current = JSON.parse(localStorage.getItem(RECENT_ANALYSES_STORAGE_KEY) || '[]');
+    const list = Array.isArray(current) ? current : [];
+    const deduped = list.filter((item) => item.id !== nextItem.id && item.title !== nextItem.title);
+    localStorage.setItem(RECENT_ANALYSES_STORAGE_KEY, JSON.stringify([nextItem, ...deduped].slice(0, 3)));
+    window.dispatchEvent(new Event('recentAnalysesUpdated'));
+  } catch (error) {
+    console.warn('최근 분석 결과 저장 실패:', error);
+  }
+};
+
 const App = () => {
   const [view, setView] = useState('home');
   const [reportData, setReportData] = useState(null);
