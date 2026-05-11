@@ -38,3 +38,6 @@ pnpm-debug.log*
 # Logs
 logs/
 *.log
+.env
+.env.local
+.env.*.local
