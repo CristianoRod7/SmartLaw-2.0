@@ -126,7 +126,7 @@ const buildConsultResult = (prompt) => {
 const toFallbackResult = (prompt, source = 'fallback') => {
   const fallback = buildConsultResult(prompt);
   return {
-    answer: 'AI API 응답을 받지 못해 로컬 키워드 기반 fallback 상담 결과를 표시합니다.',
+    answer: 'Gemini 상담 응답 생성 실패로 로컬 키워드 기반 fallback 상담 결과를 표시합니다.',
     detectedRisks: fallback.risks.map((risk) => ({ title: risk, level: '주의', reason: risk })),
     checkpoints: fallback.nextSteps,
     recommendedActions: fallback.recommendations.map((item) => ({
@@ -147,7 +147,7 @@ const normalizeResult = (payload) => ({
   checkpoints: Array.isArray(payload?.checkpoints) ? payload.checkpoints : [],
   recommendedActions: Array.isArray(payload?.recommendedActions) ? payload.recommendedActions : [],
   followUpQuestions: Array.isArray(payload?.followUpQuestions) ? payload.followUpQuestions : [],
-  source: payload?.source || 'openai',
+  source: payload?.source || 'gemini',
   fallbackReason: payload?.fallbackReason || null,
 });
 
@@ -177,13 +177,13 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
       console.log('AI consult source:', normalized.source, normalized.fallbackReason || '');
       setResult(normalized);
       if (normalized.source === 'fallback') {
-        setErrorMessage(normalized.fallbackReason || 'AI API fallback 응답을 표시합니다.');
+        setErrorMessage(normalized.fallbackReason || 'Gemini 상담 응답 생성 실패로 fallback 응답을 표시합니다.');
       }
     } catch (error) {
       console.error('AI 리스크 상담 API 호출 실패:', error);
       const fallback = toFallbackResult(nextPrompt, 'frontend_fallback');
       console.log('AI consult source:', fallback.source, fallback.fallbackReason || '');
-      setErrorMessage('AI API 응답을 받지 못해 로컬 fallback 결과를 표시합니다.');
+      setErrorMessage('Gemini 상담 응답 생성 실패로 로컬 fallback 결과를 표시합니다.');
       setResult(fallback);
     } finally {
       setLoading(false);
@@ -305,7 +305,7 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">
-              {result?.source === 'fallback' ? 'Fallback consultation result' : 'AI consultation result'}
+              {result?.source === 'fallback' ? 'Fallback consultation result' : result?.source === 'gemini' ? 'Gemini consultation result' : 'AI consultation result'}
             </p>
             <h3 className="mt-1 break-keep text-2xl font-black text-slate-950">상담 결과 영역</h3>
           </div>

@@ -1,8 +1,8 @@
-import asyncio
 import json
+import re
 from typing import Any, Dict
 
-import requests
+from google import genai
 
 from app.core.config import settings
 from app.schemas.ai_risk_consult import AiRiskConsultResponse
@@ -11,7 +11,8 @@ SYSTEM_PROMPT = """너는 스마트팜, 농지 임대차, 보조금 환수, 시�
 법률 자문을 확정적으로 제공하지 말고, 계약 검토 방향과 확인해야 할 조항을 안내한다.
 사용자 입력을 바탕으로 리스크 유형, 확인 포인트, 추천 기능, 후속 질문을 JSON으로 반환한다.
 과장된 단정, 변호사 자문 대체 표현, 확정적 법률 판단은 피한다.
-답변은 한국어로 작성한다."""
+답변은 한국어로 작성한다.
+반드시 아래 JSON 구조만 순수 JSON으로 반환한다. markdown code fence(```json)나 설명 문장을 앞뒤에 붙이지 않는다."""
 
 RESPONSE_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -115,51 +116,65 @@ def _fallback_response(message: str, fallback_reason: str) -> AiRiskConsultRespo
 
 class AiRiskConsultService:
     def __init__(self):
-        self.api_key = getattr(settings, "OPENAI_API_KEY", "")
-        self.model = getattr(settings, "OPENAI_MODEL", "gpt-4.1-mini") or "gpt-4.1-mini"
-        self.timeout = 20
+        self.api_key = getattr(settings, "GEMINI_API_KEY", None) or getattr(settings, "GOOGLE_API_KEY", None)
+        self.model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash"
+        self.client = None
 
-    def _extract_output_text(self, payload: Dict[str, Any]) -> str:
-        if payload.get("output_text"):
-            return payload["output_text"]
+        if self.api_key and self.api_key != "mock_key":
+            self.client = genai.Client(api_key=self.api_key)
 
-        for output in payload.get("output", []):
-            if output.get("type") == "message":
-                for content in output.get("content", []):
-                    if content.get("type") == "output_text" and content.get("text"):
-                        return content["text"]
+    def _build_prompt(self, message: str, context: Dict[str, Any]) -> str:
+        return f"""{SYSTEM_PROMPT}
 
-        return ""
+응답 JSON schema 참고:
+{json.dumps(RESPONSE_SCHEMA, ensure_ascii=False)}
 
-    def _request_openai(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        body = {
-            "model": self.model,
-            "input": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": json.dumps({"message": message, "context": context}, ensure_ascii=False)},
-            ],
-            "temperature": 0.2,
-            "text": {
-                "format": {
-                    "type": "json_schema",
-                    "name": "ai_risk_consult_response",
-                    "strict": True,
-                    "schema": RESPONSE_SCHEMA,
-                }
+사용자 입력과 화면 context를 바탕으로 다음 키를 모두 포함하는 JSON 객체만 반환하세요.
+- answer: 한국어 상담 요약 문자열
+- detectedRisks: title, level(낮음/주의/위험), reason을 가진 배열
+- checkpoints: 확인해야 할 조항/자료 문자열 배열
+- recommendedActions: label, description, route를 가진 배열. route는 /smartfarm, /analysis, /it-outsourcing, /policy 중 적절히 선택
+- followUpQuestions: 추가로 물어볼 한국어 질문 배열
+
+사용자 입력:
+{message}
+
+context(JSON):
+{json.dumps(context, ensure_ascii=False)}"""
+
+    def _extract_json_text(self, text: str) -> str:
+        cleaned = (text or "").strip()
+        fence_match = re.search(r"```(?:json)?\s*(.*?)```", cleaned, re.DOTALL | re.IGNORECASE)
+        if fence_match:
+            cleaned = fence_match.group(1).strip()
+
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and start < end:
+            cleaned = cleaned[start:end + 1]
+
+        return cleaned
+
+    def _parse_response_text(self, text: str) -> Dict[str, Any]:
+        return json.loads(self._extract_json_text(text))
+
+    async def _request_gemini(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.client:
+            raise RuntimeError("GEMINI_API_KEY or GOOGLE_API_KEY is missing")
+
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=self._build_prompt(message, context),
+            config={
+                "temperature": 0.2,
+                "response_mime_type": "application/json",
             },
-        }
-        response = requests.post(
-            "https://api.openai.com/v1/responses",
-            headers=headers,
-            json=body,
-            timeout=self.timeout,
         )
-        response.raise_for_status()
-        return response.json()
+
+        if not response.text:
+            raise RuntimeError("Gemini response is empty")
+
+        return self._parse_response_text(response.text)
 
     async def consult(self, message: str, context: Dict[str, Any] | None = None) -> AiRiskConsultResponse:
         context = context or {}
@@ -176,17 +191,12 @@ class AiRiskConsultService:
                 fallbackReason="Input is too short",
             )
 
-        if not self.api_key:
-            return _fallback_response(cleaned_message, fallback_reason="OPENAI_API_KEY is missing")
-
         try:
-            payload = await asyncio.to_thread(self._request_openai, cleaned_message, context)
-            output_text = self._extract_output_text(payload)
-            parsed = json.loads(output_text)
-            return AiRiskConsultResponse(**parsed, source="openai")
+            parsed = await self._request_gemini(cleaned_message, context)
+            return AiRiskConsultResponse(**parsed, source="gemini")
         except Exception as exc:
-            print(f"❌ OpenAI AI 리스크 상담 실패: {repr(exc)}")
-            return _fallback_response(cleaned_message, fallback_reason=f"OpenAI request failed or response parsing failed: {type(exc).__name__}")
+            print(f"❌ Gemini AI 리스크 상담 실패: {repr(exc)}")
+            return _fallback_response(cleaned_message, fallback_reason=f"Gemini request failed: {str(exc) or type(exc).__name__}")
 
 
 ai_risk_consult_service = AiRiskConsultService()
