@@ -1,129 +1,78 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Cpu,
   Leaf,
   Scale,
-  BarChart3,
   ArrowUpRight,
-  TrendingUp,
-  ChevronRight,
   Sparkles,
+  History,
+  Bot,
+  SendHorizontal,
+  ShieldQuestion,
 } from 'lucide-react';
 
-const RECENT_ANALYSES_STORAGE_KEY = 'smartlaw_recent_analysis_results';
 const MotionDiv = motion.div;
 
-const getRiskTone = (score = 0) => {
-  if (score >= 80) return 'border-red-100 bg-red-50 text-red-600';
-  if (score >= 60) return 'border-amber-100 bg-amber-50 text-amber-700';
-  return 'border-emerald-100 bg-emerald-50 text-emerald-700';
-};
+const CONSULTATION_CHIPS = [
+  '보조금 환수 위험',
+  '농지 임대차 검토',
+  '시공사 유지보수',
+  '계약 해지 조건',
+];
 
-const readRecentAnalyses = () => {
-  try {
-    const raw = window.localStorage.getItem(RECENT_ANALYSES_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
-  } catch {
-    return [];
-  }
-};
-
-const RecentAnalysisCard = ({ item, onOpen }) => (
-  <button
-    type="button"
-    onClick={() => onOpen?.(item)}
-    className="group w-full rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-left shadow-sm shadow-slate-200/50 transition-all duration-200 hover:-translate-y-[1px] hover:border-emerald-200 hover:shadow-[0_16px_38px_-30px_rgba(15,23,42,0.55)]"
-  >
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-600/70">{item.contractType || '계약서 분석'}</p>
-        <h5 className="mt-1 line-clamp-1 break-keep text-sm font-black text-slate-950">{item.title}</h5>
+const AiRiskConsultCard = () => (
+  <div className="flex min-h-[420px] flex-col justify-between rounded-[3.5rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/50">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">AI Risk Router</p>
+          <h4 className="mt-1 break-keep text-2xl font-black tracking-tight text-slate-950">AI 리스크 상담</h4>
+        </div>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner shadow-emerald-100/60">
+          <Bot size={22} />
+        </div>
       </div>
-      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black ${getRiskTone(item.riskScore)}`}>
-        {item.riskScore}점
-      </span>
+
+      <p className="break-keep text-sm font-semibold leading-7 text-slate-500">
+        계약 상황을 입력하면 필요한 분석 기능과 검토 방향을 추천합니다.
+      </p>
+
+      <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-3 transition-colors focus-within:border-emerald-200 focus-within:bg-white">
+        <textarea
+          rows={4}
+          placeholder="예: 시공사가 하자보수 책임을 계약서에 명확히 적지 않았어요."
+          className="min-h-[120px] w-full resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-7 text-slate-800 outline-none placeholder:break-keep placeholder:text-slate-400"
+        />
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">추천 질문</p>
+        <div className="flex flex-wrap gap-2">
+          {CONSULTATION_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              className="rounded-full border border-emerald-100 bg-emerald-50/70 px-3.5 py-2 text-xs font-black text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-sm"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
 
-    <p className="mt-2 line-clamp-2 break-keep text-xs font-semibold leading-5 text-slate-500">{item.summary}</p>
-
-    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-500">{item.analyzedAt}</span>
-      <span className="rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-black text-red-600">위험 {item.dangerCount}</span>
-      <span className="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700">주의 {item.warningCount}</span>
-    </div>
-
-    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-black text-slate-500">
-      <span>리포트 보기</span>
-      <ChevronRight size={15} className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-600" />
-    </div>
-  </button>
+    <button
+      type="button"
+      className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-900/10"
+    >
+      상담 시작
+      <SendHorizontal size={16} />
+    </button>
+  </div>
 );
 
-const RecentAnalysisPanel = ({ onOpenRecentReport }) => {
-  const [recentAnalyses, setRecentAnalyses] = useState([]);
-
-  useEffect(() => {
-    const syncRecentAnalyses = () => setRecentAnalyses(readRecentAnalyses());
-
-    syncRecentAnalyses();
-    window.addEventListener('storage', syncRecentAnalyses);
-    window.addEventListener('recentAnalysesUpdated', syncRecentAnalyses);
-
-    return () => {
-      window.removeEventListener('storage', syncRecentAnalyses);
-      window.removeEventListener('recentAnalysesUpdated', syncRecentAnalyses);
-    };
-  }, []);
-
-  const hasRecentAnalyses = recentAnalyses.length > 0;
-
-  return (
-    <div className="flex min-h-[420px] flex-col justify-between rounded-[3.5rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/50">
-      <div className="space-y-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600/70">Recent Reports</p>
-            <h4 className="mt-1 break-keep text-xl font-black text-slate-900">최근 분석 결과</h4>
-          </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <TrendingUp size={20} />
-          </div>
-        </div>
-
-        {hasRecentAnalyses ? (
-          <div className="space-y-3">
-            {recentAnalyses.map((item) => (
-              <RecentAnalysisCard key={item.id} item={item} onOpen={onOpenRecentReport} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-5 py-10 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
-              <BarChart3 size={22} />
-            </div>
-            <h5 className="break-keep text-base font-black text-slate-900">아직 분석 기록이 없습니다</h5>
-            <p className="mt-2 break-keep text-sm font-semibold leading-6 text-slate-500">
-              계약서를 분석하면 최근 리포트가 최대 3개까지 이곳에 표시됩니다.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onOpenRecentReport?.(recentAnalyses[0])}
-        disabled={!hasRecentAnalyses}
-        className="mt-6 w-full rounded-2xl bg-slate-950 py-4 text-xs font-black uppercase tracking-widest text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-      >
-        {hasRecentAnalyses ? 'Open Latest Report' : 'No Reports Yet'}
-      </button>
-    </div>
-  );
-};
-
-const Home = ({ onNavigate, onOpenRecentReport }) => {
+const Home = ({ onNavigate }) => {
   // 대시보드 메뉴 아이템 정의 (스마트팜을 가장 먼저 배치)
   const menuItems = useMemo(() => [
     {
@@ -151,12 +100,13 @@ const Home = ({ onNavigate, onOpenRecentReport }) => {
       active: true,
     },
     {
-      id: 'biz',
-      title: '비즈니스 지표',
-      desc: '계약 리스크 통합 관리 대시보드',
-      icon: <BarChart3 size={32} />,
-      color: 'bg-slate-50 text-slate-600',
+      id: 'history',
+      title: '분석 히스토리',
+      desc: '이전 계약 분석 기록과 리포트 검색',
+      icon: <History size={32} />,
+      color: 'bg-slate-100 text-slate-700',
       active: false,
+      badge: 'HISTORY',
     },
   ], []);
 
@@ -183,53 +133,67 @@ const Home = ({ onNavigate, onOpenRecentReport }) => {
         {menuItems.map((item) => (
           <MotionDiv
             key={item.id}
-            whileHover={{ y: -8, shadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+            whileHover={{ y: -6, shadow: '0 18px 35px -28px rgb(15 23 42 / 0.45)' }}
             onClick={() => item.active && onNavigate(item.id)}
-            className={`group relative cursor-pointer rounded-[3rem] border border-slate-200 bg-white p-8 transition-all ${!item.active && 'cursor-not-allowed opacity-60'}`}
+            className={`group relative rounded-[3rem] border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/40 transition-all ${item.active ? 'cursor-pointer hover:border-emerald-100' : 'cursor-default'}`}
           >
-            <div className={`mb-10 flex h-16 w-16 items-center justify-center rounded-2xl ${item.color} shadow-sm transition-transform group-hover:scale-110`}>
+            <div className={`mb-10 flex h-16 w-16 items-center justify-center rounded-2xl ${item.color} shadow-sm transition-transform group-hover:scale-105`}>
               {item.icon}
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900">{item.title}</h3>
-                <ArrowUpRight size={20} className="text-slate-300 transition-colors group-hover:text-emerald-600" />
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="break-keep text-xl font-black text-slate-900">{item.title}</h3>
+                <ArrowUpRight size={20} className={`shrink-0 transition-colors ${item.active ? 'text-slate-300 group-hover:text-emerald-600' : 'text-slate-300'}`} />
               </div>
               <p className="break-keep text-sm font-bold leading-relaxed text-slate-500">{item.desc}</p>
             </div>
-            {!item.active && (
-              <span className="absolute right-8 top-6 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600">Wait</span>
+            {item.badge && (
+              <span className="absolute right-8 top-6 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                {item.badge}
+              </span>
             )}
           </MotionDiv>
         ))}
       </section>
 
-      {/* 🚀 하단 인사이트 섹션 (스마트팜 집중 노출) */}
+      {/* 🚀 하단 인사이트 섹션 (스마트팜 정책·뉴스 크롤링 진입점 유지) */}
       <section className="grid grid-cols-1 gap-8 px-2 lg:grid-cols-3">
-        <div className="group relative overflow-hidden rounded-[3.5rem] bg-slate-900 p-12 text-white lg:col-span-2">
-          <div className="relative z-10 space-y-6">
-            <span className="text-xs font-black uppercase italic tracking-widest text-emerald-400">Smart Farm Intelligence</span>
-            <h3 className="text-4xl font-black italic leading-tight tracking-tighter">
-              "스마트팜 관련 <br />
-              <span className="text-emerald-400 underline decoration-emerald-400/30 underline-offset-8">정책과 이슈</span>를 한눈에 확인하세요."
-            </h3>
-            <p className="max-w-xl break-keep text-lg font-medium text-slate-400">
-              보조금, 농지 임대차, 스마트팜 구축과 관련된 주요 내용을 쉽고 빠르게 확인할 수 있습니다.
-            </p>
-            <button
-              type="button"
-              onClick={() => onNavigate('recommend')}
-              className="rounded-2xl bg-emerald-600 px-8 py-4 text-sm font-black shadow-lg shadow-emerald-900/20 transition-all hover:bg-white hover:text-slate-900"
-            >
-              정책 확인하기
-            </button>
+        <div className="group relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-10 text-white shadow-xl shadow-slate-900/10 lg:col-span-2 lg:p-12">
+          <div className="relative z-10 max-w-2xl space-y-7">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+              <ShieldQuestion size={14} /> Crawling Intelligence
+            </div>
+            <div className="space-y-4">
+              <h3 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">
+                스마트팜 정책과 이슈를 <span className="text-emerald-300">한눈에</span> 확인하세요
+              </h3>
+              <p className="max-w-xl break-keep text-base font-semibold leading-7 text-slate-300 lg:text-lg lg:leading-8">
+                보조금, 농지 임대차, 스마트팜 구축과 관련된 정책·뉴스를 빠르게 확인할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => onNavigate('recommend')}
+                className="rounded-2xl bg-emerald-500 px-8 py-4 text-sm font-black text-slate-950 shadow-lg shadow-emerald-950/20 transition-all hover:-translate-y-0.5 hover:bg-white"
+              >
+                정책·이슈 확인하기
+              </button>
+              <span className="break-keep text-xs font-bold leading-6 text-slate-400">
+                최신 정책 흐름을 확인한 뒤 계약 분석과 리스크 상담으로 이어갈 수 있습니다.
+              </span>
+            </div>
           </div>
-          <div className="pointer-events-none absolute right-[-5%] top-1/2 -translate-y-1/2 rotate-12 opacity-10 transition-transform duration-1000 group-hover:rotate-0">
-            <Leaf size={400} />
+          <div className="pointer-events-none absolute right-[-4%] top-1/2 -translate-y-1/2 rotate-12 opacity-10 transition-transform duration-1000 group-hover:rotate-6">
+            <Leaf size={390} />
+          </div>
+          <div className="pointer-events-none absolute bottom-8 right-10 hidden rounded-[2rem] border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm xl:block">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">Next Step</p>
+            <p className="mt-1 break-keep text-sm font-bold text-white/80">정책 확인 → 계약 분석 → 리스크 상담</p>
           </div>
         </div>
 
-        <RecentAnalysisPanel onOpenRecentReport={onOpenRecentReport} />
+        <AiRiskConsultCard />
       </section>
     </MotionDiv>
   );
