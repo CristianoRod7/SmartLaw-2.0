@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../../config/api';
 import { motion } from 'framer-motion';
 import { FileText, ArrowLeft, Sparkles, ChevronDown, CheckCircle2, UploadCloud, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
 
@@ -27,8 +28,7 @@ const Analysis = ({ onBack, onComplete }) => {
 
     try {
       setStatusMsg("AI 엔진이 독소조항을 정밀 스캔 중입니다. (약 10~20초 소요)");
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-      const res = await axios.post(`${API_BASE_URL}/api/v1/analyze/contract`, formData, {
+      const res = await axios.post(apiUrl('/api/v1/analyze/contract'), formData, {
       cancelToken: source.token
         });
       
