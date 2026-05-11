@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../config/api';
 import { FileText, ChevronRight, Calendar, Star, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-
 const History = ({ setView, setResult }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,9 +10,9 @@ const History = ({ setView, setResult }) => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/api/v1/analyze/history/${id}`);
-                setHistory(res.data);
-            } catch (err) { console.error("기록 로드 실패"); } 
+                const res = await axios.get(apiUrl('/api/v1/analyze/history'));
+                setHistory(res.data?.data || res.data || []);
+            } catch (err) { console.error("기록 로드 실패", err); }
             finally { setLoading(false); }
         };
         fetchHistory();
@@ -22,7 +20,7 @@ const History = ({ setView, setResult }) => {
 
     const handleDetail = async (id) => {
         try {
-            const res = await axios.get('${API_BASE_URL}/api/v1/analyze/history/${id}');
+            const res = await axios.get(apiUrl(`/api/v1/analyze/history/${id}`));
             // 🚀 1. 데이터를 부모의 result에 저장
             setResult(res.data.analysis_result); 
             
@@ -31,7 +29,7 @@ const History = ({ setView, setResult }) => {
             setView('report', id); 
             
             window.scrollTo(0, 0);
-        } catch (err) { alert("상세 리포트를 가져오지 못했습니다. 🕵️"); }
+        } catch (err) { console.error("상세 리포트 로드 실패", err); alert("상세 리포트를 가져오지 못했습니다. 🕵️"); }
     };
 
     if (loading) return <div className="text-center py-40 font-black text-slate-400 animate-pulse text-xl italic uppercase">Fetching Data...</div>;
