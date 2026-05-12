@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { runSmartfarmSimulation } from "./api/simulatorApi";
 import { analyzeApi } from "../core_analyze/api/analyzeApi";
 import { mapAnalysisToSimulation } from "./engine/mapAnalysisToSimulation";
@@ -8,6 +8,8 @@ import StepSidebar from "./views/StepSidebar";
 import RiskRadarPanel from "./views/RiskRadarPanel";
 import InterviewHero from "./views/InterviewHero";
 import { motion } from "framer-motion";
+
+const MotionDiv = motion.div;
 
 const steps = [
   "운영 정보",
@@ -49,6 +51,17 @@ const initialForm = {
   liabilityLevel: "low",
   subsidyClawbackTrigger: false,
   dataOwnership: "shared",
+};
+
+const handleSafeBack = (fallback) => {
+  const canNavigateBack = typeof window !== "undefined" && Number(window.history?.state?.idx || 0) > 0;
+
+  if (canNavigateBack) {
+    window.history.back();
+    return;
+  }
+
+  fallback?.();
 };
 
 export default function Simulator({ onBack, onComplete }) {
@@ -147,6 +160,15 @@ export default function Simulator({ onBack, onComplete }) {
 
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-6 px-2 md:px-4">
+      <button
+        type="button"
+        onClick={() => handleSafeBack(onBack)}
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+      >
+        <ArrowLeft size={15} />
+        Smart Farm Hub로
+      </button>
+
       {loading && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-slate-900 px-6 py-7 text-white shadow-2xl">
@@ -164,7 +186,7 @@ export default function Simulator({ onBack, onComplete }) {
       )}
 
       <section className="relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-gradient-to-r from-slate-950 via-slate-950 to-emerald-950 px-6 py-8 text-white shadow-[0_18px_40px_rgba(15,23,42,0.10)] md:px-8">
-        <motion.div
+        <MotionDiv
   aria-hidden="true"
   className="pointer-events-none absolute right-[-30px] top-1/2 -translate-y-1/2 opacity-[0.12]"
   animate={{
@@ -206,7 +228,7 @@ export default function Simulator({ onBack, onComplete }) {
       strokeLinecap="round"
     />
   </svg>
-</motion.div>
+</MotionDiv>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-black tracking-wider text-emerald-200">
@@ -239,10 +261,10 @@ export default function Simulator({ onBack, onComplete }) {
 
           {onBack && (
             <button
-              onClick={onBack}
-              className="shrink-0 rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+              onClick={() => handleSafeBack(onBack)}
+              className="shrink-0 rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
             >
-              뒤로가기
+              Hub로 돌아가기
             </button>
           )}
         </div>

@@ -3,20 +3,31 @@ import { motion } from 'framer-motion';
 import {
   Leaf,
   ShieldCheck,
-  AlertTriangle,
   ArrowLeft,
   Sprout,
   ChevronRight,
   FileText,
-  BadgeAlert,
   Landmark,
-  Wrench,
   ScanSearch,
   FileWarning,
   CheckCircle2,
 } from 'lucide-react';
 
+const MotionDiv = motion.div;
+
+const getSafeBackHandler = (fallback) => () => {
+  const canNavigateBack = typeof window !== 'undefined' && Number(window.history?.state?.idx || 0) > 0;
+
+  if (canNavigateBack) {
+    window.history.back();
+    return;
+  }
+
+  fallback?.();
+};
+
 const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulator }) => {
+  const handleBack = getSafeBackHandler(onBack);
   const contracts = [
     {
       name: "비닐온실(스마트팜) 시공 계약",
@@ -34,34 +45,30 @@ const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulato
     },
   ];
 
-  const alerts = [
-    {
-      icon: <Landmark size={18} />,
-      title: "농지 임대차 리스크",
-      desc: "A지번 계약서에서 무단전대 해석 가능성이 있는 문구가 탐지되었습니다.",
-      level: "위험",
-    },
-    {
-      icon: <Wrench size={18} />,
-      title: "시공 하자보수 조항 미흡",
-      desc: "시설 유지보수 범위와 A/S 기간이 명확하지 않아 분쟁 위험이 있습니다.",
-      level: "주의",
-    },
-    {
-      icon: <BadgeAlert size={18} />,
-      title: "보조금 환수 가능성 점검 필요",
-      desc: "지원 조건과 실제 시설 사용 목적 간 일치 여부를 다시 확인해야 합니다.",
-      level: "주의",
-    },
+  const preContractChecklist = [
+    "하자보수 기간이 명시되어 있나요?",
+    "보조금 환수 조건이 포함되어 있나요?",
+    "농지 사용 목적 제한이 적혀 있나요?",
+    "계약 해지 조건이 일방적이지 않나요?",
+    "지체상금 기준이 과도하지 않나요?",
   ];
 
-  const quickActions = [
+  const primaryActions = [
     {
       icon: <ScanSearch size={18} />,
       title: "시설 계약서 스캔",
       desc: "시공 계약, 설비 납품 계약 위험 분석",
       action: () => onNavigateToAnalysis("스마트팜 구축 계약"),
     },
+    {
+      icon: <FileText size={18} />,
+      title: "스마트팜 종합 리스크 진단",
+      desc: "계약 + 농지 + 보조금 전체 통합 분석",
+      action: () => onNavigateToAnalysis("스마트팜 종합 분석"),
+    },
+  ];
+
+  const supportActions = [
     {
       icon: <FileWarning size={18} />,
       title: "농지 임대차 검토",
@@ -76,22 +83,16 @@ const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulato
     },
     {
       icon: <FileText size={18} />,
-      title: "스마트팜 종합 리스크 진단",
-      desc: "계약 + 농지 + 보조금 전체 통합 분석",
-      action: () => onNavigateToAnalysis("스마트팜 종합 분석"),
+      title: "스마트팜 리스크 시뮬레이터",
+      desc: "현장 조건 + 계약서를 함께 반영한 미래 리스크 예측",
+      action: () => onNavigateToSimulator(),
     },
-    {
-      
-          icon: <FileText size={18} />,
-          title: "스마트팜 리스크 시뮬레이터",
-          desc: "현장 조건 + 계약서를 함께 반영한 미래 리스크 예측",
-          action: () => onNavigateToSimulator(),
-
-}
   ];
 
+  const actionCardClass = "group flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-left transition hover:border-emerald-100 hover:bg-emerald-50";
+
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full pb-20 space-y-8 font-sans"
@@ -105,10 +106,10 @@ const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulato
         <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-5">
             <button
-              onClick={onBack}
-              className="flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/15 hover:text-white"
+              onClick={handleBack}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black text-slate-200 transition hover:bg-white/15 hover:text-white"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={15} />
               Hub 홈으로
             </button>
 
@@ -156,78 +157,109 @@ const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulato
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[2.3rem] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
-              <CheckCircle2 size={20} />
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
+                <CheckCircle2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">빠른 실행</h3>
+                <p className="text-sm font-medium text-slate-500">
+                  자주 사용하는 스마트팜 전용 작업
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-black text-slate-900">빠른 실행</h3>
-              <p className="text-sm font-medium text-slate-500">
-                자주 사용하는 스마트팜 전용 작업
-              </p>
-            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">
+              분석 기능 · 보조 도구
+            </span>
           </div>
 
-          <div className="space-y-3">
-            {quickActions.map((item, i) => (
-              <button
-                key={i}
-                onClick={item.action}
-                className="group flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-left transition hover:border-emerald-100 hover:bg-emerald-50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-xl bg-white p-2 text-emerald-600 shadow-sm">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-900">{item.title}</div>
-                    <div className="mt-1 text-sm text-slate-500">{item.desc}</div>
-                  </div>
-                </div>
-                <ChevronRight className="text-slate-400 transition group-hover:text-emerald-600" size={18} />
-              </button>
-            ))}
+          <div className="space-y-6">
+            <div>
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-emerald-600">주요 분석 기능</p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                {primaryActions.map((item) => (
+                  <button
+                    key={item.title}
+                    onClick={item.action}
+                    className={actionCardClass}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl bg-white p-2 text-emerald-600 shadow-sm">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900">{item.title}</div>
+                        <div className="mt-1 break-keep text-sm font-medium leading-5 text-slate-500">{item.desc}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="shrink-0 text-slate-400 transition group-hover:text-emerald-600" size={18} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400">보조 도구</p>
+              <div className="space-y-3">
+                {supportActions.map((item) => (
+                  <button
+                    key={item.title}
+                    onClick={item.action}
+                    className={actionCardClass}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl bg-white p-2 text-emerald-600 shadow-sm">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">{item.title}</div>
+                        <div className="mt-1 break-keep text-sm font-medium leading-5 text-slate-500">{item.desc}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="shrink-0 text-slate-400 transition group-hover:text-emerald-600" size={18} />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="rounded-[2.3rem] border border-slate-200 bg-white p-8 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-xl bg-red-50 p-2 text-red-500">
-              <AlertTriangle size={20} />
+            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600">
+              <CheckCircle2 size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900">주요 리스크 알림</h3>
+              <h3 className="text-xl font-black text-slate-900">계약 전 체크리스트</h3>
               <p className="text-sm font-medium text-slate-500">
-                지금 바로 확인해야 할 핵심 위험 요소
+                분석 전에 빠르게 확인할 핵심 조항
               </p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {alerts.map((alert, i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+          <ul className="space-y-3">
+            {preContractChecklist.map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-bold text-slate-800">
-                    <span className="text-emerald-600">{alert.icon}</span>
-                    {alert.title}
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                      alert.level === "위험"
-                        ? "bg-red-100 text-red-600"
-                        : "bg-amber-100 text-amber-600"
-                    }`}
-                  >
-                    {alert.level}
-                  </span>
-                </div>
-                <p className="text-sm leading-6 text-slate-600">{alert.desc}</p>
-              </div>
+                <span className="mt-0.5 rounded-full bg-emerald-100 p-1 text-emerald-600">
+                  <CheckCircle2 size={15} />
+                </span>
+                <span className="break-keep text-sm font-bold leading-6 text-slate-700">{item}</span>
+              </li>
             ))}
-          </div>
+          </ul>
+
+          <button
+            type="button"
+            onClick={() => onNavigateToAnalysis("스마트팜 종합 분석")}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-600"
+          >
+            종합 진단 시작
+            <ChevronRight size={17} />
+          </button>
         </div>
       </section>
 
@@ -295,7 +327,7 @@ const SmartFarmDashboard = ({ onBack, onNavigateToAnalysis, onNavigateToSimulato
           ))}
         </div>
       </section>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
