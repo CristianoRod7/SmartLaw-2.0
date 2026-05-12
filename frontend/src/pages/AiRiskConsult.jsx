@@ -18,11 +18,31 @@ import { aiRiskConsultApi } from '../api/aiRiskConsult';
 
 const MotionDiv = motion.div;
 
-const CONSULTATION_CHIPS = [
-  '보조금 환수 위험',
-  '농지 임대차 검토',
-  '시공사 유지보수',
-  '계약 해지 조건',
+const suggestedTopics = [
+  { category: '보조금/환수', question: '보조금을 받았는데 나중에 환수될까 걱정돼요' },
+  { category: '농지/설치', question: '농지를 빌렸는데 스마트팜 설치가 가능한지 모르겠어요' },
+  { category: '시공/A/S', question: '시공사가 하자보수 책임을 명확히 적지 않았어요' },
+  { category: '해지 조건', question: '상대방이 일방적으로 계약을 해지할 수 있게 되어 있어요' },
+  { category: '손해배상', question: '지체상금이나 손해배상 기준이 너무 불리해 보여요' },
+  { category: 'IT/소스코드', question: '개발된 소스코드 권리가 누구에게 있는지 애매해요' },
+  { category: '보조금/목적 외 사용', question: '지원금을 받은 시설을 다른 용도로 써도 되는지 모르겠어요' },
+  { category: '운영 변경', question: '사업 계획과 실제 운영 방식이 달라질 것 같아요' },
+  { category: '농지/규제', question: '농업 목적 외 사용으로 문제가 생길까 걱정돼요' },
+  { category: '설비/비용', question: '설비가 고장났을 때 누가 비용을 부담하는지 애매해요' },
+  { category: '공사 지연', question: '공사가 늦어졌을 때 책임 조항이 부족한 것 같아요' },
+  { category: '유지보수', question: '유지보수 기간과 무상 수리 범위가 불분명해요' },
+  { category: '원상복구', question: '계약 해지 후 원상복구 책임이 어디까지인지 모르겠어요' },
+  { category: '검수/대금', question: '검수 기준이 불명확해서 대금 지급이 늦어질까 걱정돼요' },
+  { category: 'IT/변경 요청', question: '추가 수정 요청을 계속 받아야 하는지 모르겠어요' },
+  { category: 'IT/저작권', question: '산출물 저작권을 전부 넘겨야 한다고 적혀 있어요' },
+];
+
+const INITIAL_SUGGESTED_TOPIC_COUNT = 6;
+
+const fallbackFollowUpQuestions = [
+  '문제가 된 조항 문구를 그대로 입력해 주실 수 있나요?',
+  '계약 유형이 시공, 임대차, 외주 중 어디에 가까운가요?',
+  '상대방이 부담해야 하는 책임은 무엇이라고 생각하시나요?',
 ];
 
 const keywordGroups = [
@@ -135,7 +155,7 @@ const toFallbackResult = (prompt, source = 'fallback') => {
       route: item.route || '/analysis',
       analysisType: item.analysisType,
     })),
-    followUpQuestions: CONSULTATION_CHIPS,
+    followUpQuestions: fallbackFollowUpQuestions,
     source: 'fallback',
     fallbackReason: source === 'frontend_fallback' ? 'Frontend API request failed' : source,
   };
@@ -192,9 +212,9 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
 
   const handleSubmit = () => requestConsult(input);
 
-  const handleChipClick = (chip) => {
-    setInput(chip);
-    requestConsult(chip);
+  const handleSuggestedTopicClick = (question) => {
+    setInput(question);
+    requestConsult(question);
   };
 
   const handleRecommendationClick = (recommendation) => {
@@ -274,16 +294,24 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
           </div>
 
           <div className="mt-5 space-y-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">추천 질문</p>
-            <div className="flex flex-wrap gap-2">
-              {CONSULTATION_CHIPS.map((chip) => (
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">상담 주제 추천</p>
+                <p className="mt-1 break-keep text-xs font-bold leading-5 text-slate-500">자주 묻는 실제 고민을 누르면 바로 상담을 시작합니다.</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">6개 주제</span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {suggestedTopics.slice(0, INITIAL_SUGGESTED_TOPIC_COUNT).map((topic) => (
                 <button
-                  key={chip}
+                  key={topic.question}
                   type="button"
-                  onClick={() => handleChipClick(chip)}
-                  className="rounded-full border border-emerald-100 bg-emerald-50/80 px-3.5 py-2 text-xs font-black text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-sm"
+                  onClick={() => handleSuggestedTopicClick(topic.question)}
+                  className="group min-w-0 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm shadow-slate-200/40 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-md hover:shadow-emerald-100/60"
                 >
-                  {chip}
+                  <span className="text-[11px] font-black uppercase tracking-[0.12em] text-emerald-600">{topic.category}</span>
+                  <span className="mt-1.5 line-clamp-2 block break-keep text-sm font-black leading-6 text-slate-800 group-hover:text-emerald-800">{topic.question}</span>
+                  <span className="mt-2 inline-flex text-[11px] font-black text-slate-400 group-hover:text-emerald-600">바로 상담하기 →</span>
                 </button>
               ))}
             </div>
@@ -380,7 +408,7 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
 
             {result.followUpQuestions.length > 0 && (
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
-                <h4 className="text-sm font-black text-slate-950">후속 질문</h4>
+                <h4 className="text-sm font-black text-slate-950">추가로 확인할 질문</h4>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {result.followUpQuestions.map((question) => (
                     <button
