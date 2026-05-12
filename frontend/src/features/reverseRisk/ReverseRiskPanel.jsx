@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { analyzeReverseRisk } from './riskAnalyzer.js';
+import RiskScoreExplanation from '../../components/analysis/RiskScoreExplanation';
 
 const levelStyle = {
   위험: {
@@ -80,7 +81,10 @@ const ReverseRiskPanel = ({ contractText, apiAnalysisResult }) => {
 
         <div className="grid min-w-0 grid-cols-3 gap-3 rounded-3xl bg-slate-950 p-4 text-white shadow-lg lg:w-[420px]">
           <div className="min-w-0 rounded-2xl bg-white/10 p-4">
-            <p className="text-[11px] font-bold text-slate-400">종합 점수</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold text-slate-400">종합 점수</p>
+              <RiskScoreExplanation buttonClassName="h-6 w-6 border-white/15 bg-white/10 text-purple-100 hover:bg-white/20" />
+            </div>
             <p className="mt-1 text-3xl font-black text-purple-300">{analysis.summary.averageScore}</p>
           </div>
           <div className="min-w-0 rounded-2xl bg-white/10 p-4">

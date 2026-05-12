@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { analyzeContractRisk } from "../../../features/reverseRisk/riskAnalyzer";
+import RiskScoreExplanation from "../../../components/analysis/RiskScoreExplanation";
 
 const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
 
@@ -223,9 +224,12 @@ const Chip = ({ children }) => {
   return <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-bold text-slate-500 shadow-sm shadow-slate-200/30">{children}</span>;
 };
 
-const MetricBlock = ({ label, value, caption }) => (
+const MetricBlock = ({ label, value, caption, helper }) => (
   <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.075] px-3.5 py-3 text-white shadow-sm shadow-black/10 backdrop-blur">
-    <p className="break-keep text-[10px] font-black uppercase tracking-[0.12em] text-emerald-100/70">{label}</p>
+    <div className="flex items-center justify-between gap-2">
+      <p className="break-keep text-[10px] font-black uppercase tracking-[0.12em] text-emerald-100/70">{label}</p>
+      {helper}
+    </div>
     <div className="mt-1.5 flex items-end gap-1.5">
       <p className="text-2xl font-black leading-none tracking-tight text-white">{value}</p>
       {caption && <p className="min-w-0 truncate pb-0.5 text-[11px] font-bold text-slate-300/80">{caption}</p>}
@@ -256,7 +260,7 @@ const HeroHeader = ({ reverseRiskResults, integratedItems }) => {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 rounded-[22px] border border-white/10 bg-white/[0.055] p-2.5 backdrop-blur sm:grid-cols-4">
-          <MetricBlock label="종합 점수" value={summary.summaryScore} caption={summary.summaryLevel} />
+          <MetricBlock label="종합 점수" value={summary.summaryScore} caption={summary.summaryLevel} helper={<RiskScoreExplanation buttonClassName="h-6 w-6 border-white/15 bg-white/10 text-emerald-100 hover:bg-white/20" />} />
           <MetricBlock label="위험" value={summary.dangerCount} />
           <MetricBlock label="주의" value={summary.cautionCount} />
           <MetricBlock label="연결 조항" value={matchedClauseCount} caption={`${integratedItems.length}개 중`} />
