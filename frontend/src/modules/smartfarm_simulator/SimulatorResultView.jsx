@@ -5,7 +5,18 @@ import FutureRiskPanel from "./views/FutureRiskPanel";
 import ActionGuidePanel from "./views/ActionGuidePanel";
 import ScoreBreakdownPanel from "./views/ScoreBreakdownPanel";
 import ContractEvidencePanel from "./views/ContractEvidencePanel";
-export default function SimulatorResultView({ data, onReset }) {
+const handleSafeBack = (fallback) => {
+  const canNavigateBack = typeof window !== "undefined" && Number(window.history?.state?.idx || 0) > 0;
+
+  if (canNavigateBack) {
+    window.history.back();
+    return;
+  }
+
+  fallback?.();
+};
+
+export default function SimulatorResultView({ data, onReset, onBack }) {
   if (!data) {
     return (
       <div className="text-center py-40 font-black text-slate-400">
@@ -33,6 +44,15 @@ export default function SimulatorResultView({ data, onReset }) {
 
   return (
     <div className="w-full pb-20 font-sans space-y-8">
+      <button
+        type="button"
+        onClick={() => handleSafeBack(onBack || onReset)}
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+      >
+        <ArrowLeft size={15} />
+        Smart Farm Hub로
+      </button>
+
       <div className="flex flex-wrap justify-between items-center gap-4 px-2">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
