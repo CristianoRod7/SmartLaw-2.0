@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const MotionDiv = motion.div;
+
 // 🚀 7대 필수 법률 서류 실제 양식 완벽 탑재!
 const docTemplates = {
   property_lease: {
@@ -268,6 +270,21 @@ const MAX_FREE_TOKENS = 100000;
 const AVG_CHAT_TOKEN = 400;   
 const AVG_DOC_TOKEN = 2500;   
 
+const aiQuickActions = [
+  '빈칸 채우기',
+  '문구 더 강하게',
+  '법률 문구처럼 다듬기',
+  '불리한 표현 완화',
+  '요약해서 설명',
+];
+
+const buildInitialAssistantMessage = (doc) => {
+  const fields = doc.requiredFields || [];
+  const fieldList = fields.map((field, index) => `${index + 1}. ${field}`).join('\n');
+
+  return `[${doc.title}] 작성을 도와드릴게요.\n\n아래 정보부터 알려주시면 문서의 빈칸을 자연스럽게 채워드릴 수 있습니다.\n\n${fieldList}\n\n모든 정보를 한 번에 입력하지 않아도 됩니다. 아는 내용부터 편하게 말씀해 주세요.`;
+};
+
 const Consultant = () => {
   const [view, setView] = useState('menu'); 
   const [messages, setMessages] = useState([]);
@@ -294,14 +311,14 @@ const Consultant = () => {
   }, []);
 
   const docLibrary = [
-    { id: 'property_lease', category: '부동산/임대차', title: "부동산 임대차 계약서", icon: <FileText size={28} className="text-blue-600" />, desc: "월세, 전세 계약 등 주거용 부동산 거래 시 필수", law: "주택임대차보호법" },
-    { id: 'smart_farm_construction', category: '농업/스마트팜', title: "스마트팜 시공 계약서", icon: <Leaf size={28} className="text-emerald-600" />, desc: "스마트팜 온실 및 ICT 설비 구축 시 필수", law: "건설산업기본법" },
-    { id: 'contents_of_proof', category: '일반/행정', title: "내용증명", icon: <FileText size={28} className="text-blue-600" />, desc: "전세사기, 계약불이행 등 공식 항의용", law: "민법 제450조" },
-    { id: 'debt_demand', category: '금전/채권', title: "채무 변제 요구서", icon: <Scale size={28} className="text-slate-700" />, desc: "빌려준 돈, 중고거래 미환불 대응용", law: "민법 제397조" },
-    { id: 'contract_termination', category: '일반/행정', title: "계약 해지 통보서", icon: <AlertCircle size={28} className="text-amber-600" />, desc: "임대차/서비스 계약의 공식 종료 통보", law: "민법 제543조" },
-    { id: 'settlement_agreement', category: '형사/합의', title: "합의서", icon: <ShieldCheck size={28} className="text-emerald-600" />, desc: "분쟁 종결 및 민·형사상 이의제기 금지", law: "민법 제731조" },
-    { id: 'labor_dispute', category: '노동/인권', title: "근로 관련 서류 (임금체불)", icon: <Gavel size={28} className="text-purple-600" />, desc: "임금 체불, 부당해고 진정 및 대응", law: "근로기준법" },
-    { id: 'receipt_memo', category: '금전/채권', title: "영수증/확인서/차용증", icon: <Sparkles size={28} className="text-indigo-600" />, desc: "금전 수령 확인 및 약속 이행 증명", law: "민법 제474조" },
+    { id: 'property_lease', category: '부동산/임대차', title: "부동산 임대차 계약서", icon: <FileText size={28} className="text-blue-600" />, desc: "월세, 전세 계약 등 주거용 부동산 거래 시 필수", law: "주택임대차보호법", requiredFields: ['임대인 이름', '임차인 이름', '부동산 주소', '보증금', '월세', '임대차 기간'] },
+    { id: 'smart_farm_construction', category: '농업/스마트팜', title: "스마트팜 시공 계약서", icon: <Leaf size={28} className="text-emerald-600" />, desc: "스마트팜 온실 및 ICT 설비 구축 시 필수", law: "건설산업기본법", requiredFields: ['발주자 이름', '시공사 이름', '공사 장소', '공사 기간', '도급 금액', '하자보수 기간'] },
+    { id: 'contents_of_proof', category: '일반/행정', title: "내용증명", icon: <FileText size={28} className="text-blue-600" />, desc: "전세사기, 계약불이행 등 공식 항의용", law: "민법 제450조", requiredFields: ['발신인', '수신인', '통지 제목', '사건 내용', '요구 사항', '이행 기한'] },
+    { id: 'debt_demand', category: '금전/채권', title: "채무 변제 요구서", icon: <Scale size={28} className="text-slate-700" />, desc: "빌려준 돈, 중고거래 미환불 대응용", law: "민법 제397조", requiredFields: ['채권자 이름', '채무자 이름', '차용 금액', '변제 기한', '입금 계좌'] },
+    { id: 'contract_termination', category: '일반/행정', title: "계약 해지 통보서", icon: <AlertCircle size={28} className="text-amber-600" />, desc: "임대차/서비스 계약의 공식 종료 통보", law: "민법 제543조", requiredFields: ['수신인', '발신인', '계약명', '체결일', '해지 사유', '반환 요청 금액'] },
+    { id: 'settlement_agreement', category: '형사/합의', title: "합의서", icon: <ShieldCheck size={28} className="text-emerald-600" />, desc: "분쟁 종결 및 민·형사상 이의제기 금지", law: "민법 제731조", requiredFields: ['갑 정보', '을 정보', '사건 내용', '합의금', '지급 기한', '처벌불원 여부'] },
+    { id: 'labor_dispute', category: '노동/인권', title: "근로 관련 서류 (임금체불)", icon: <Gavel size={28} className="text-purple-600" />, desc: "임금 체불, 부당해고 진정 및 대응", law: "근로기준법", requiredFields: ['근로자 이름', '사업주 이름', '사업장명', '근무기간', '체불임금', '담당업무'] },
+    { id: 'receipt_memo', category: '금전/채권', title: "영수증/확인서/차용증", icon: <Sparkles size={28} className="text-indigo-600" />, desc: "금전 수령 확인 및 약속 이행 증명", law: "민법 제474조", requiredFields: ['채권자 이름', '채무자 이름', '차용 금액', '변제기일', '이자율', '지연손해금'] },
   ];
 
   const handleDocSelect = (doc) => {
@@ -312,7 +329,7 @@ const Consultant = () => {
     setView('editor');
     setMessages([{ 
         role: 'model', 
-        content: `안녕하십니까. 국민의 권리 보호를 위한 [${doc.category}] 분야 전문 AI 보조관입니다. \n\n선택하신 [${doc.title}]의 빠르고 정확한 작성을 위해 **고객님(발신인/채권자 등)의 성함과 연락처**를 먼저 편하게 말씀해 주시겠습니까?` 
+        content: buildInitialAssistantMessage(doc)
     }]);
   };
 
@@ -395,10 +412,12 @@ const Consultant = () => {
     setDocumentContent(newContent);
   };
 
-  const handleAISend = async () => {
-    if (!input.trim() || !selectedDoc) return;
+  const handleAISend = async (overrideMessage = '') => {
+    const rawMessage = typeof overrideMessage === 'string' ? overrideMessage : input;
+    const messageToSend = rawMessage.trim();
+    if (!messageToSend || !selectedDoc) return;
     
-    const userMessage = { role: 'user', content: input };
+    const userMessage = { role: 'user', content: messageToSend };
     const currentHistory = [...messages]; 
     
     setMessages(prev => [...prev, userMessage]);
@@ -416,7 +435,7 @@ ${documentContent}]`;
 
      const res = await axios.post(apiUrl('/api/v1/chat/draft'), {
         document_type: selectedDoc.title,
-        message: input + hiddenSystemPrompt, 
+        message: messageToSend + hiddenSystemPrompt, 
         history: currentHistory
       });
 
@@ -436,7 +455,7 @@ ${documentContent}]`;
           newUsedTokens = res.data.tokens;
       } 
       else {
-          const estimatedPromptTokens = Math.ceil((input.length + hiddenSystemPrompt.length) * 2.2);
+          const estimatedPromptTokens = Math.ceil((messageToSend.length + hiddenSystemPrompt.length) * 2.2);
           const estimatedCompletionTokens = Math.ceil(aiResponse.length * 2.2);
           newUsedTokens = estimatedPromptTokens + estimatedCompletionTokens;
       }
@@ -488,16 +507,21 @@ ${documentContent}]`;
     }
   };
 
+  const handleQuickAction = (action) => {
+    setInput(action);
+    handleAISend(action);
+  };
+
   const remainingTokens = Math.max(0, MAX_FREE_TOKENS - usedTokens);
   const remainingChats = Math.floor(remainingTokens / AVG_CHAT_TOKEN);
   const remainingDocs = Math.floor(remainingTokens / AVG_DOC_TOKEN);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-[1600px] px-4 md:px-8 mx-auto h-[94vh] flex flex-col font-sans pb-6">
+    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-[1600px] px-4 md:px-8 mx-auto h-[94vh] flex flex-col font-sans pb-6">
       
       <AnimatePresence>
         {toastMsg && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
@@ -505,7 +529,7 @@ ${documentContent}]`;
           >
             <CheckCircle size={20} className="text-emerald-400" />
             {toastMsg}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -600,15 +624,21 @@ ${documentContent}]`;
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto px-4 py-12 flex justify-center print:overflow-visible print:p-0 print:block">
-                <div 
+              <div className="flex-1 overflow-y-auto px-4 py-8 print:overflow-visible print:p-0 print:block">
+                <div className="mx-auto mb-4 flex w-full max-w-[794px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-4 py-2 text-xs font-bold text-slate-500 shadow-sm print:hidden">
+                  <BookOpen size={14} className="shrink-0 text-blue-600" />
+                  <span className="break-keep">문서 본문을 클릭해 직접 수정할 수 있습니다.</span>
+                </div>
+                <div className="flex justify-center">
+                  <div 
                   ref={editorRef}
                   contentEditable="true"
                   suppressContentEditableWarning={true}
                   onBlur={(e) => handleEditorChange(e.currentTarget.innerHTML)} 
                   className="bg-white w-full max-w-[794px] min-h-[1123px] outline-none font-sans break-keep p-10 sm:p-16 shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-slate-200 print:shadow-none print:border-none print:p-0 print:min-h-0 print:max-w-none print:w-full"
-                  dangerouslySetInnerHTML={{ __html: documentContent }} 
-                />
+                    dangerouslySetInnerHTML={{ __html: documentContent }} 
+                  />
+                </div>
               </div>
 
               <div className="absolute right-0 top-1/2 -translate-y-1/2 z-30 print:hidden">
@@ -623,7 +653,7 @@ ${documentContent}]`;
 
             <AnimatePresence initial={false}>
               {showChatbot && (
-                <motion.div 
+                <MotionDiv 
                   initial={{ width: 0 }} 
                   animate={{ width: 400 }} 
                   exit={{ width: 0 }}
@@ -662,6 +692,22 @@ ${documentContent}]`;
                     </div>
 
                     <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                      <div className="mb-3">
+                        <p className="mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">빠른 요청</p>
+                        <div className="flex flex-wrap gap-2">
+                          {aiQuickActions.map((action) => (
+                            <button
+                              key={action}
+                              type="button"
+                              onClick={() => handleQuickAction(action)}
+                              disabled={isTyping}
+                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-black text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {action}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <div className="bg-slate-50 border border-slate-200 rounded-xl flex items-center p-2 focus-within:ring-2 focus-within:ring-blue-500">
                         <input 
                           className="flex-1 px-4 py-2 outline-none font-medium text-[14px] bg-transparent" 
@@ -676,14 +722,14 @@ ${documentContent}]`;
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </MotionDiv>
               )}
             </AnimatePresence>
           </>
         )}
 
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
