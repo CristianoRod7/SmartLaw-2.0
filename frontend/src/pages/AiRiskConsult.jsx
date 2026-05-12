@@ -39,6 +39,21 @@ const suggestedTopics = [
 
 const INITIAL_SUGGESTED_TOPIC_COUNT = 6;
 
+const consultCapabilities = [
+  '보조금 환수',
+  '농지 임대차',
+  '시공 하자보수',
+  '계약 해지',
+  '지체상금',
+  'IP/저작권',
+];
+
+const consultOutcomeSteps = [
+  { index: '01', title: '리스크 유형 요약', desc: '입력한 고민을 계약 리스크 유형으로 분류합니다.' },
+  { index: '02', title: '확인 포인트 정리', desc: '계약서에서 먼저 봐야 할 조항을 정리합니다.' },
+  { index: '03', title: '추천 기능 연결', desc: '계약 스캔, 정책 확인, 라이브러리로 이어줍니다.' },
+];
+
 const fallbackFollowUpQuestions = [
   '문제가 된 조항 문구를 그대로 입력해 주실 수 있나요?',
   '계약 유형이 시공, 임대차, 외주 중 어디에 가까운가요?',
@@ -245,29 +260,74 @@ const AiRiskConsult = ({ initialPrompt = '', onBack, onNavigate, onAnalyze }) =>
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-8 text-white shadow-xl shadow-slate-900/10 lg:p-10">
-          <div className="relative z-10 space-y-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
-              <Bot size={14} /> AI Risk Router
-            </div>
-            <div className="space-y-3">
-              <h2 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">AI 리스크 상담</h2>
-              <p className="max-w-xl break-keep text-base font-semibold leading-8 text-slate-300">
-                계약 상황을 입력하면 백엔드 AI 상담 API가 리스크 유형, 확인 포인트, 추천 기능을 정리합니다.
-              </p>
+          <div className="relative z-10 flex h-full min-h-[620px] flex-col">
+            <div className="space-y-7">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                <Bot size={14} /> AI Risk Router
+              </div>
+              <div className="space-y-3">
+                <h2 className="break-keep text-4xl font-black leading-tight tracking-tighter lg:text-5xl">AI 리스크 상담</h2>
+                <p className="max-w-xl break-keep text-base font-semibold leading-8 text-slate-300">
+                  계약 상황을 입력하면 Gemini 상담 API가 리스크 유형, 확인 포인트, 추천 기능을 정리합니다.
+                </p>
+              </div>
+
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-200">상담 흐름</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {['상황 입력', 'AI 리스크 요약', '추천 기능 이동'].map((step) => (
+                    <div key={step} className="rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-bold text-white/80">
+                      {step}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-200">상담 흐름</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {['상황 입력', 'AI 리스크 요약', '추천 기능 이동'].map((step) => (
-                  <div key={step} className="rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-bold text-white/80">
-                    {step}
+            <div className="mt-auto space-y-5 pt-8">
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.055] p-5 backdrop-blur-md">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-200">Coverage</p>
+                    <h3 className="mt-1 break-keep text-lg font-black text-white">상담 가능 영역</h3>
                   </div>
-                ))}
+                  <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-black text-emerald-200">6개 분야</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {consultCapabilities.map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-2.5 text-center text-xs font-black text-slate-100">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-emerald-300/15 bg-emerald-300/[0.07] p-5 backdrop-blur-md">
+                <div className="mb-4 flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-300/15 text-emerald-200">
+                    <Sparkles size={19} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-200">Result preview</p>
+                    <h3 className="mt-1 break-keep text-lg font-black text-white">AI가 정리해 주는 내용</h3>
+                    <p className="mt-1 break-keep text-sm font-semibold leading-6 text-slate-300">입력한 상황을 바탕으로 검토 방향을 단계별로 압축합니다.</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {consultOutcomeSteps.map((step) => (
+                    <div key={step.index} className="grid grid-cols-[42px_1fr] gap-3 rounded-2xl border border-white/10 bg-slate-950/20 px-4 py-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-black text-emerald-200">{step.index}</span>
+                      <div className="min-w-0">
+                        <p className="break-keep text-sm font-black text-white">{step.title}</p>
+                        <p className="mt-0.5 break-keep text-xs font-semibold leading-5 text-slate-400">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-          <div className="pointer-events-none absolute right-[-10%] top-1/2 -translate-y-1/2 rotate-12 opacity-10">
+          <div className="pointer-events-none absolute right-[-12%] top-[42%] -translate-y-1/2 rotate-12 opacity-[0.07]">
             <Bot size={420} />
           </div>
         </div>
