@@ -12,6 +12,20 @@ import CategorySelect from "./CategorySelect";
 import AnalyzeButton from "./AnalyzeButton";
 
 const sampleFiles = {
+  "부동산 임대차 계약서": "/samples/real_estate_lease.txt",
+  "전세 계약서": "/samples/real_estate_lease.txt",
+  "월세 계약서": "/samples/real_estate_lease.txt",
+  "근로 계약서": "/samples/employment_contract.txt",
+  "금전 소비대차 계약서": "/samples/loan_agreement.txt",
+  "IT 외주 계약서": "/samples/freelance_contract.txt",
+  "소프트웨어 개발 계약서": "/samples/freelance_contract.txt",
+  "외주 개발 계약서": "/samples/freelance_contract.txt",
+  "프리랜서 용역 계약서": "/samples/freelance_contract.txt",
+  "용역/프리랜서 계약서": "/samples/freelance_contract.txt",
+  "비밀유지 계약서(NDA)": "/samples/nda.txt",
+  "NDA / 비밀유지계약서": "/samples/nda.txt",
+  "IT 유지보수 계약서": "/samples/maintenance_contract.txt",
+  "유지보수 계약서": "/samples/maintenance_contract.txt",
   "스마트팜 구축 계약": "/samples/smartfarm_build.pdf",
   "농지 임대차 계약": "/samples/farmland_lease.pdf",
   "보조금 관련 문서": "/samples/subsidy.pdf",
@@ -95,8 +109,9 @@ export default function Analyze({
       }
 
       const blob = await res.blob();
-      const sampleFile = new File([blob], url.split("/").pop(), {
-        type: "application/pdf",
+      const fileName = url.split("/").pop();
+      const sampleFile = new File([blob], fileName, {
+        type: fileName.endsWith(".pdf") ? "application/pdf" : "text/plain",
       });
 
       setFile(sampleFile);
@@ -152,7 +167,14 @@ export default function Analyze({
               "부동산 임대차 계약서",
               "근로 계약서",
               "금전 소비대차 계약서",
+              "IT 외주 계약서",
+              "소프트웨어 개발 계약서",
+              "유지보수 계약서",
+              "NDA / 비밀유지계약서",
+              "프리랜서 용역 계약서",
               "용역/프리랜서 계약서",
+              "비밀유지 계약서(NDA)",
+              "IT 유지보수 계약서",
               "스마트팜 구축 계약",
               "농지 임대차 계약",
               "보조금 관련 문서",
