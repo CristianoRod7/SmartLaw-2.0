@@ -102,7 +102,7 @@ const App = () => {
 
   useEffect(() => {
     const syncTokens = () => {
-      setUsedTokens(parseInt(localStorage.getItem('nextlaw_used_tokens') || '1200', 10));
+      setUsedTokens(parseInt(localStorage.getItem('nextlaw_used_tokens') || '0', 10));
     };
 
     syncTokens();

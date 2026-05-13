@@ -16,12 +16,17 @@ async def chat_for_drafting(request: ChatRequest):
             history=history_list
         )
 
+        content = ai_response.get("content", "") if isinstance(ai_response, dict) else ai_response
+        usage = ai_response.get("usage") if isinstance(ai_response, dict) else None
+
         return {
             "status": "success",
             "data": {
                 "role": "model",
-                "content": ai_response
-            }
+                "content": content
+            },
+            "content": content,
+            "usage": usage,
         }
 
     except HTTPException as e:

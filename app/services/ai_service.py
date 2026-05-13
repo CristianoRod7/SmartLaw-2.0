@@ -83,6 +83,49 @@ class AIService:
 
         raise HTTPException(status_code=503, detail=f"AI 분석 실패: {str(last_error)}")
 
+    def _extract_usage(self, response, prompt: str = "", response_text: str = "") -> dict:
+        usage_metadata = getattr(response, "usage_metadata", None) or getattr(response, "usageMetadata", None)
+
+        if usage_metadata:
+            prompt_count = (
+                getattr(usage_metadata, "prompt_token_count", None)
+                or getattr(usage_metadata, "promptTokenCount", None)
+                or (usage_metadata.get("promptTokenCount") if isinstance(usage_metadata, dict) else None)
+                or (usage_metadata.get("prompt_token_count") if isinstance(usage_metadata, dict) else None)
+                or 0
+            )
+            candidates_count = (
+                getattr(usage_metadata, "candidates_token_count", None)
+                or getattr(usage_metadata, "candidatesTokenCount", None)
+                or (usage_metadata.get("candidatesTokenCount") if isinstance(usage_metadata, dict) else None)
+                or (usage_metadata.get("candidates_token_count") if isinstance(usage_metadata, dict) else None)
+                or 0
+            )
+            total_count = (
+                getattr(usage_metadata, "total_token_count", None)
+                or getattr(usage_metadata, "totalTokenCount", None)
+                or (usage_metadata.get("totalTokenCount") if isinstance(usage_metadata, dict) else None)
+                or (usage_metadata.get("total_token_count") if isinstance(usage_metadata, dict) else None)
+                or (int(prompt_count) + int(candidates_count))
+            )
+
+            return {
+                "promptTokenCount": int(prompt_count or 0),
+                "candidatesTokenCount": int(candidates_count or 0),
+                "totalTokenCount": int(total_count or 0),
+                "estimated": False,
+            }
+
+        prompt_count = max(1, len(prompt) // 4) if prompt else 0
+        candidates_count = max(1, len(response_text) // 4) if response_text else 0
+
+        return {
+            "promptTokenCount": prompt_count,
+            "candidatesTokenCount": candidates_count,
+            "totalTokenCount": prompt_count + candidates_count,
+            "estimated": True,
+        }
+
     def _draft_document_chat_fallback(
         self,
         document_type: str,
@@ -122,11 +165,15 @@ class AIService:
         document_type: str,
         user_message: str,
         history: list[dict] | None = None
-    ) -> str:
+    ) -> dict:
         history = history or []
 
         if not self.client:
-            return self._draft_document_chat_fallback(document_type, user_message, history)
+            fallback_text = self._draft_document_chat_fallback(document_type, user_message, history)
+            return {
+                "content": fallback_text,
+                "usage": self._extract_usage(None, user_message, fallback_text),
+            }
 
         history_text = "\n".join(
             [f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in history]
@@ -169,7 +216,11 @@ class AIService:
                     if not response.text:
                         raise HTTPException(status_code=503, detail="AI 응답이 비어 있습니다.")
 
-                    return response.text.strip()
+                    response_text = response.text.strip()
+                    return {
+                        "content": response_text,
+                        "usage": self._extract_usage(response, prompt, response_text),
+                    }
 
                 except Exception as e:
                     last_error = e

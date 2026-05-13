@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const MotionDiv = motion.div;
+
 // 🚀 7대 필수 법률 서류 실제 양식 완벽 탑재!
 const docTemplates = {
   property_lease: {
@@ -268,7 +270,7 @@ const MAX_FREE_TOKENS = 100000;
 const AVG_CHAT_TOKEN = 400;   
 const AVG_DOC_TOKEN = 2500;   
 
-const Consultant = ({ onBack, onAnalyze }) => {
+const Consultant = () => {
   const [view, setView] = useState('menu'); 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -281,6 +283,7 @@ const Consultant = ({ onBack, onAnalyze }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); 
   
   const [usedTokens, setUsedTokens] = useState(0);
+  const [lastUsage, setLastUsage] = useState(null);
 
   const editorRef = useRef(null);
   const scrollRef = useRef(null);
@@ -426,19 +429,10 @@ ${documentContent}]`;
         aiResponse = JSON.stringify(aiResponse);
       }
 
-      // 🚀 사용량 차감 로직 (글로벌 상태 연동)
-      let newUsedTokens = 0;
-      if (res.data?.usage?.total_tokens) {
-          newUsedTokens = res.data.usage.total_tokens;
-      } 
-      else if (res.data?.tokens) {
-          newUsedTokens = res.data.tokens;
-      } 
-      else {
-          const estimatedPromptTokens = Math.ceil((input.length + hiddenSystemPrompt.length) * 2.2);
-          const estimatedCompletionTokens = Math.ceil(aiResponse.length * 2.2);
-          newUsedTokens = estimatedPromptTokens + estimatedCompletionTokens;
-      }
+      // 🚀 Gemini usageMetadata 기반 사용량 차감 (1 token = 1 credit)
+      const usage = res.data?.usage || null;
+      const newUsedTokens = Number(usage?.totalTokenCount || 0);
+      setLastUsage(usage);
       
       // 🔥 사용한 토큰 누적 후 글로벌 이벤트 발생
       const currentTokens = parseInt(localStorage.getItem('nextlaw_used_tokens') || '0', 10);
@@ -492,11 +486,11 @@ ${documentContent}]`;
   const remainingDocs = Math.floor(remainingTokens / AVG_DOC_TOKEN);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-[1600px] px-4 md:px-8 mx-auto h-[94vh] flex flex-col font-sans pb-6">
+    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-[1600px] px-4 md:px-8 mx-auto h-[94vh] flex flex-col font-sans pb-6">
       
       <AnimatePresence>
         {toastMsg && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
@@ -504,7 +498,7 @@ ${documentContent}]`;
           >
             <CheckCircle size={20} className="text-emerald-400" />
             {toastMsg}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -528,6 +522,12 @@ ${documentContent}]`;
             <span>💬 <span className="text-blue-600 font-black">{remainingChats}</span>번</span>
             <span className="opacity-30">|</span>
             <span>📄 <span className="text-emerald-600 font-black">{remainingDocs}</span>번</span>
+            {lastUsage && (
+              <>
+                <span className="opacity-30">|</span>
+                <span>{lastUsage.estimated ? '예상 사용량' : '사용량'} <span className="text-slate-900 font-black">{Number(lastUsage.totalTokenCount || 0).toLocaleString()}</span></span>
+              </>
+            )}
           </div>
 
           {view !== 'menu' && (
@@ -622,7 +622,7 @@ ${documentContent}]`;
 
             <AnimatePresence initial={false}>
               {showChatbot && (
-                <motion.div 
+                <MotionDiv 
                   initial={{ width: 0 }} 
                   animate={{ width: 400 }} 
                   exit={{ width: 0 }}
@@ -675,14 +675,14 @@ ${documentContent}]`;
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </MotionDiv>
               )}
             </AnimatePresence>
           </>
         )}
 
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
