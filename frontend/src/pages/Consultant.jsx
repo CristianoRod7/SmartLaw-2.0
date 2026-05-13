@@ -322,6 +322,25 @@ const Consultant = () => {
     { id: 'receipt_memo', category: '금전/채권', title: "영수증/확인서/차용증", icon: <Sparkles size={28} className="text-indigo-600" />, desc: "금전 수령 확인 및 약속 이행 증명", law: "민법 제474조", requiredFields: ['채권자 이름', '채무자 이름', '차용 금액', '변제기일', '이자율', '지연손해금'] },
   ];
 
+  const buildInitialAssistantMessage = (doc) => {
+    const fields = doc.requiredFields || ['당사자 이름', '계약 날짜', '금액 또는 기간', '요구 사항'];
+    const fieldList = fields.map((field, index) => `${index + 1}. ${field}`).join('\n');
+
+    return `[${doc.title}] 작성을 도와드릴게요.\n\n아래 정보부터 알려주시면 문서의 빈칸을 자연스럽게 채워드릴 수 있습니다.\n\n${fieldList}\n\n모든 정보를 한 번에 입력하지 않아도 됩니다. 아는 내용부터 편하게 말씀해 주세요.`;
+  };
+
+  const quickActions = [
+    '빈칸 채우기',
+    '문구 더 강하게',
+    '법률 문구처럼 다듬기',
+    '불리한 표현 완화',
+    '요약해서 설명'
+  ];
+
+  const handleQuickAction = (action) => {
+    setInput(action);
+  };
+
   const handleDocSelect = (doc) => {
     setSelectedDoc(doc);
     const savedContent = localStorage.getItem(`nextlaw_doc_${doc.id}`);
@@ -530,7 +549,7 @@ ${documentContent}]`;
           <div className="bg-blue-900 p-3 rounded-xl text-white shadow-sm"><FileText size={26} /></div>
           <div>
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">NextLaw 대국민 법률 서류 지원 서비스</h2>
-            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1">분야별 전문 AI 보조관 및 7대 표준 법률 양식 무상 제공</p>
+            <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1">필요한 서류를 선택하면 AI가 빈칸 작성과 문구 수정을 도와드립니다</p>
           </div>
         </div>
         
@@ -562,27 +581,102 @@ ${documentContent}]`;
       <div className="flex-1 bg-slate-200 rounded-2xl shadow-md border border-slate-300 flex overflow-hidden print:bg-white print:border-none print:shadow-none print:overflow-visible print:rounded-none">
         
         {view === 'menu' && (
-          <div className="flex-1 overflow-y-auto p-12 bg-white print:hidden">
-            <div className="space-y-10">
-              {Array.from(new Set(docLibrary.map(d => d.category))).map(category => (
-                <div key={category}>
-                  <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
-                    <ShieldCheck size={20} className="text-blue-600" />
-                    <h3 className="text-xl font-extrabold text-slate-800">{category} 분야</h3>
+          <div className="flex-1 overflow-y-auto bg-slate-50 print:hidden">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-8 p-6 lg:p-10">
+              <div className="space-y-8 min-w-0">
+                <div className="rounded-[28px] bg-white border border-slate-200 shadow-sm p-6 lg:p-8">
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.22em] text-blue-600 uppercase mb-2">Document Library</p>
+                      <h3 className="text-2xl font-black text-slate-950 tracking-tight break-keep">필요한 법률 서류를 선택하세요</h3>
+                      <p className="text-sm text-slate-500 font-semibold mt-2 break-keep">AI가 빈칸 작성, 문구 수정, Word/PDF 저장까지 이어서 도와드립니다.</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-black text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-3 py-2 shrink-0">
+                      <FileText size={14} className="text-blue-600" />
+                      {docLibrary.length}개 표준 양식
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {docLibrary.filter(doc => doc.category === category).map((doc) => (
-                      <div key={doc.id} className="bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col justify-between hover:border-blue-500 hover:shadow-md hover:bg-white transition-all group cursor-pointer" onClick={() => handleDocSelect(doc)}>
-                        <div>
-                          <div className="bg-white p-4 rounded-xl w-fit mb-5 shadow-sm group-hover:scale-105 transition-transform">{doc.icon}</div>
-                          <h4 className="text-lg font-bold text-slate-900 mb-2">{doc.title}</h4>
-                          <p className="text-slate-500 text-sm mb-6">{doc.desc}</p>
+
+                  <div className="space-y-9">
+                    {Array.from(new Set(docLibrary.map(d => d.category))).map(category => (
+                      <div key={category}>
+                        <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                          <ShieldCheck size={18} className="text-blue-600" />
+                          <h3 className="text-lg font-black text-slate-900">{category} 분야</h3>
+                          <span className="text-xs font-bold text-slate-400">{docLibrary.filter(doc => doc.category === category).length}개</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                          {docLibrary.filter(doc => doc.category === category).map((doc) => (
+                            <button
+                              type="button"
+                              key={doc.id}
+                              className="text-left bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 transition-all group cursor-pointer min-h-[210px]"
+                              onClick={() => handleDocSelect(doc)}
+                            >
+                              <div>
+                                <div className="flex items-start justify-between gap-3 mb-4">
+                                  <div className="bg-slate-50 p-3 rounded-xl w-fit shadow-sm group-hover:scale-105 transition-transform">{doc.icon}</div>
+                                  <span className="text-[10px] font-black tracking-wider text-blue-700 bg-blue-50 border border-blue-100 px-2 py-1 rounded-full shrink-0">AI 작성</span>
+                                </div>
+                                <h4 className="text-[16px] font-black text-slate-950 mb-2 leading-snug break-keep">{doc.title}</h4>
+                                <p className="text-slate-500 text-sm leading-6 break-keep line-clamp-2">{doc.desc}</p>
+                              </div>
+                              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                                <span className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded-full truncate max-w-[150px]">{doc.law}</span>
+                                <span className="text-xs font-black text-blue-700 group-hover:translate-x-0.5 transition-transform">작성 시작 →</span>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <aside className="xl:sticky xl:top-6 h-fit rounded-[28px] bg-white border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-950 p-6 text-white relative overflow-hidden">
+                  <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-blue-500/20 blur-2xl" />
+                  <div className="relative">
+                    <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg mb-4">
+                      <Sparkles size={22} />
+                    </div>
+                    <p className="text-xs font-black tracking-[0.22em] text-blue-200 uppercase mb-2">AI Draft Assistant</p>
+                    <h3 className="text-2xl font-black tracking-tight break-keep">서류작성 도우미</h3>
+                    <p className="text-sm text-slate-300 leading-6 mt-3 break-keep">작성할 서류를 선택하면 필요한 정보와 AI 초안 작성 흐름을 안내합니다.</p>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div>
+                    <p className="text-xs font-black text-slate-400 tracking-widest uppercase mb-3">작성 흐름</p>
+                    <div className="space-y-2">
+                      {['서류 선택', '조건 입력', 'AI 초안 작성', '문서 저장/출력'].map((step, index) => (
+                        <div key={step} className="flex items-center gap-3 rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                          <span className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[11px] font-black text-blue-700">0{index + 1}</span>
+                          <span className="text-sm font-extrabold text-slate-800">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-black text-slate-400 tracking-widest uppercase mb-3">지원 기능</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['표준 양식', 'AI 문구 수정', 'Word/PDF', '임시저장'].map(item => (
+                        <div key={item} className="rounded-xl bg-emerald-50/60 border border-emerald-100 px-3 py-2 text-xs font-black text-emerald-800">
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/60 p-4">
+                    <p className="text-sm font-black text-slate-900 mb-1">서류를 선택해 시작하세요</p>
+                    <p className="text-xs leading-5 text-slate-500 break-keep">선택 후 문서 에디터와 AI 보조관이 열립니다. 본문은 직접 수정할 수 있고, 완성본은 Word/PDF로 저장할 수 있습니다.</p>
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
         )}
